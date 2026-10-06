@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <model name="go2_anchor">
+    <static>true</static>
+    <pose>0 0 1 0 0 0</pose>
+
+    <link name="anchor_link"/>
+
+    <plugin filename="gz-sim-detachable-joint-system"
+            name="gz::sim::systems::DetachableJoint">
+      <parent_link>anchor_link</parent_link>
+      <child_model>go2</child_model>
+      <child_link>trunk</child_link>
+
+      <detach_topic>/go2/detach</detach_topic>
+      <attach_topic>/go2/attach</attach_topic>
+      <output_topic>/go2/attachment_state</output_topic>
+    </plugin>
+  </model>
+</sdf>
