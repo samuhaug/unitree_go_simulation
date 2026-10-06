@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="lidar_sensor">
+
+    <link name="lidar_link">
+      <visual>
+        <geometry>
+          <cylinder radius="0.035" length="0.025"/>
+        </geometry>
+      </visual>
+
+      <collision>
+        <geometry>
+          <cylinder radius="0.035" length="0.025"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="lidar_joint" type="fixed">
+      <parent link="trunk"/>
+      <child link="lidar_link"/>
+      <origin xyz="0 0 0.20" rpy="0 0 0"/>
+    </joint>
+
+    <gazebo reference="lidar_link">
+      <sensor name="lidar" type="gpu_lidar">
+        <pose relative_to="lidar_link">0 0 0 0 0 0</pose>
+
+        <topic>/scan</topic>
+
+        <update_rate>10</update_rate>
+
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>360</samples>
+              <resolution>1</resolution>
+              <min_angle>-3.14159</min_angle>
+              <max_angle>3.14159</max_angle>
+            </horizontal>
+            <vertical>
+              <samples>1</samples>
+              <resolution>1</resolution>
+              <min_angle>0</min_angle>
+              <max_angle>0</max_angle>
+            </vertical>
+          </scan>
+
+          <range>
+            <min>0.1</min>
+            <max>20.0</max>
+            <resolution>0.01</resolution>
+          </range>
+        </ray>
+      </sensor>
+    </gazebo>
+
+  </xacro:macro>
+
+</robot>
