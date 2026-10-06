@@ -5,7 +5,7 @@ import xacro
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
-from launch.actions import ExecuteProcess, RegisterEventHandler
+from launch.actions import ExecuteProcess, RegisterEventHandler, TimerAction
 from launch.event_handlers import OnProcessExit
 
 
@@ -90,7 +90,12 @@ def generate_launch_description():
     detach_after_stand = RegisterEventHandler(
         OnProcessExit(
             target_action=stand_command,
-            on_exit=[detach_command],
+            on_exit=[
+                TimerAction(
+                    period=1.0,
+                    actions=[detach_command],
+                )
+            ],
         )
     )
     return LaunchDescription([
