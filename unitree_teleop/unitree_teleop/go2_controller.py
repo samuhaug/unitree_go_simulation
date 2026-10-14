@@ -3,7 +3,6 @@ import time
 
 import rclpy
 from rclpy.node import Node
-
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Float64MultiArray
 
@@ -26,24 +25,31 @@ class Go2Controller(Node):
             10
         )
 
-        # Standposition: 4 Beine mit jeweils 3 Gelenken
+        # Standposition aller vier Beine
         self.stand_position = [
-            0.0, 0.8, -1.6,    # FL
-            0.0, 0.8, -1.6,    # FR
-            0.0, 0.8, -1.6,    # RL
-            0.0, 0.8, -1.6     # RR
+            0.0, 0.8, -1.6,   # FL
+            0.0, 0.8, -1.6,   # FR
+            0.0, 0.8, -1.6,   # RL
+            0.0, 0.8, -1.6    # RR
         ]
+
+        # Beinlängen aus const.xacro
+        self.thigh_length = 0.213
+        self.calf_length = 0.213
+
+        # Kleine Testbewegung
+        self.step_height = 0.015   # 1,5 cm
+        self.step_length = 0.020   # 2,0 cm
+        self.step_duration = 3.0   # 3 Sekunden
 
         self.movement_active = False
         self.movement_start = None
 
-        # Kleine Testbewegung: 0.05 rad
-        self.amplitude = 0.05
+        # Ausgangsposition des Fußes berechnen
+        self.start_x, self.start_z = self.forward_kinematics(
+            0.8, -1.6
+        )
 
-        # Eine Bewegung dauert 2 Sekunden
-        self.movement_duration = 2.0
-
-        # Controller mit 10 Hz aktualisieren
         self.timer = self.create_timer(
             0.1,
             self.update_controller
@@ -53,58 +59,101 @@ class Go2Controller(Node):
             'Go2 Controller gestartet. Warte auf /cmd_vel.'
         )
 
+    def forward_kinematics(self, upper, lower):
+        """Fußposition aus Gelenkwinkeln berechnen."""
+
+        l1 = self.thigh_length
+        l2 = self.calf_length
+
+        x = -l1 * math.sin(upper) - l2 * math.sin(upper + lower)
+        z = -l1 * math.cos(upper) - l2 * math.cos(upper + lower)
+
+        return x, z
+
+    def inverse_kinematics(self, x, z):
+        """Gelenkwinkel für gewünschte Fußposition berechnen."""
+
+        l1 = self.thigh_length
+        l2 = self.calf_length
+
+        distance_squared = x * x + z * z
+
+        cos_knee = (
+            distance_squared - l1 * l1 - l2 * l2
+        ) / (2.0 * l1 * l2)
+
+        # Numerische Rundungsfehler begrenzen
+        cos_knee = max(-1.0, min(1.0, cos_knee))
+
+        # Negative Kniebeugung wie in der Standposition
+        lower = -math.acos(cos_knee)
+
+        upper = (
+            math.atan2(-x, -z)
+            - math.atan2(
+                l2 * math.sin(lower),
+                l1 + l2 * math.cos(lower)
+            )
+        )
+
+        return upper, lower
+
     def cmd_vel_callback(self, msg):
+        """Ein Vorwärtsbefehl startet eine einzelne Testbewegung."""
 
-        # Vorwärtsbefehl startet die Testbewegung
-        if msg.linear.x > 0.01:
+        if msg.linear.x > 0.01 and not self.movement_active:
+            self.movement_active = True
+            self.movement_start = time.monotonic()
 
-            if not self.movement_active:
-                self.movement_active = True
-                self.movement_start = time.monotonic()
+            self.get_logger().info(
+                'Schrittbewegung gestartet.'
+            )
 
-                self.get_logger().info(
-                    'Testbewegung gestartet.'
-                )
-
-        else:
-            # Stoppbefehl beendet die Bewegung
-            if self.movement_active:
-                self.get_logger().info(
-                    'Bewegung gestoppt.'
-                )
-
+        elif msg.linear.x <= 0.01 and self.movement_active:
             self.movement_active = False
             self.movement_start = None
 
-    def update_controller(self):
+            self.get_logger().info(
+                'Bewegung gestoppt.'
+            )
 
+    def update_controller(self):
         positions = self.stand_position.copy()
 
         if self.movement_active:
-
             elapsed = time.monotonic() - self.movement_start
 
-            if elapsed < self.movement_duration:
+            if elapsed < self.step_duration:
+                phase = elapsed / self.step_duration
 
-                # Eine sanfte Bewegung von 0.8 auf 0.75
-                # und wieder zurück auf 0.8 rad
-                phase = elapsed / self.movement_duration
+                # Fuß anheben und wieder absenken
+                lift = self.step_height * math.sin(
+                    math.pi * phase
+                )
 
-                offset = self.amplitude * (
+                # Fuß vorwärts und zurück bewegen:
+                # Dadurch endet der Test wieder in der Standposition.
+                forward = self.step_length * (
                     math.sin(math.pi * phase) ** 2
                 )
 
-                # Nur vorderes linkes Oberschenkelgelenk
-                positions[1] = 0.8 + offset
-                positions[2] = -1.6 - 2.0 * offset
+                target_x = self.start_x + forward
+                target_z = self.start_z + lift
+
+                upper, lower = self.inverse_kinematics(
+                    target_x, target_z
+                )
+
+                # Nur das vordere linke Bein
+                positions[1] = upper
+                positions[2] = lower
 
             else:
-                # Bewegung nach 2 Sekunden beenden
                 self.movement_active = False
                 self.movement_start = None
 
                 self.get_logger().info(
-                    'Testbewegung abgeschlossen.'
+                    'Schrittbewegung abgeschlossen.'
                 )
 
         msg = Float64MultiArray()
@@ -114,7 +163,6 @@ class Go2Controller(Node):
 
 
 def main(args=None):
-
     rclpy.init(args=args)
 
     node = Go2Controller()
@@ -125,6 +173,7 @@ def main(args=None):
         pass
     finally:
         node.destroy_node()
+
         if rclpy.ok():
             rclpy.shutdown()
 
