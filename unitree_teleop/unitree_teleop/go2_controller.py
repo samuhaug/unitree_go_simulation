@@ -95,7 +95,8 @@ class Go2Controller(Node):
                 )
 
                 # Nur vorderes linkes Oberschenkelgelenk
-                positions[1] = 0.8 - offset
+                positions[1] = 0.8 + offset
+                positions[2] = -1.6 - 2.0 * offset
 
             else:
                 # Bewegung nach 2 Sekunden beenden
