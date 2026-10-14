@@ -87,7 +87,7 @@ def generate_launch_description():
 
     stand_command = ExecuteProcess(
         cmd=[
-            'ros2', 'topic', 'pub', '--once',
+            'ros2', 'topic', 'pub', '--rate', '10', '--times', '10',
             '/leg_position_controller/commands',
             'std_msgs/msg/Float64MultiArray',
             '{data: [0.0, 0.8, -1.6, 0.0, 0.8, -1.6, 0.0, 0.8, -1.6, 0.0, 0.8, -1.6]}',
