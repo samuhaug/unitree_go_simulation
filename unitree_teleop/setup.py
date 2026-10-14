@@ -24,6 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'go2_controller = unitree_teleop.go2_controller:main',
         ],
     },
 )
