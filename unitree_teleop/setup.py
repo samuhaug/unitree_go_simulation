@@ -24,6 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'slam_pose_bridge = unitree_teleop.slam_pose_bridge:main',
         ],
     },
 )

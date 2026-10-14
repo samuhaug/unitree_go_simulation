@@ -3,12 +3,13 @@
 <package format="3">
   <name>unitree_teleop</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Teleoperation and Gazebo pose bridge for Unitree Go2</description>
   <maintainer email="samuel@todo.todo">samuel</maintainer>
   <license>TODO: License declaration</license>
 
-  <depend>rclpy</depend>
+  <depend>rclcpp</depend>
   <depend>geometry_msgs</depend>
+  <depend>tf2_ros</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
@@ -16,6 +17,6 @@
   <test_depend>python3-pytest</test_depend>
 
   <export>
-    <build_type>ament_python</build_type>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>
