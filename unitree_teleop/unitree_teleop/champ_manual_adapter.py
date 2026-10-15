@@ -100,13 +100,13 @@ class ManualAdapter(Node):
         velocity = Twist()
 
         velocity.linear.x = max(
-            -0.10,
-            min(0.10, msg.linear.x),
+            -0.15,
+            min(0.20, msg.linear.x),
         )
 
         velocity.angular.z = max(
-            -0.2,
-            min(0.2, msg.angular.z),
+            -0.30,
+            min(0.30, msg.angular.z),
         )
 
         self.requested_velocity = velocity
