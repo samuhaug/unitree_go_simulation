@@ -1,4 +1,5 @@
 from setuptools import find_packages, setup
+from glob import glob
 
 package_name = 'unitree_teleop'
 
@@ -10,6 +11,7 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -25,6 +27,8 @@ setup(
     entry_points={
         'console_scripts': [
             'go2_controller = unitree_teleop.go2_controller:main',
+            'champ_manual_adapter = unitree_teleop.champ_manual_adapter:main',
+            'wasd_teleop = unitree_teleop.wasd_teleop:main',
         ],
     },
 )
