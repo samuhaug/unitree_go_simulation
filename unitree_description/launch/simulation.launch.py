@@ -12,9 +12,9 @@ from launch.event_handlers import OnProcessExit
 def generate_launch_description():
     package_share = get_package_share_directory('unitree_description')
     world_file = os.path.join(package_share, 'worlds', 'go2_world.sdf')
-    xacro_file = os.path.join(package_share, 'urdf', 'unitree_go2_robot.xacro')   
+    xacro_file = os.path.join(package_share, 'urdf', 'unitree_go2_robot.xacro')
     anchor_file = os.path.join(package_share, 'worlds', 'go2_anchor.sdf')
-    robot_description = xacro.process_file(xacro_file).toxml()   
+    robot_description = xacro.process_file(xacro_file).toxml()
     gazebo_env = os.environ.copy()
     resource_path = os.path.dirname(package_share)
     existing_resource_path = gazebo_env.get('GZ_SIM_RESOURCE_PATH', '')
@@ -32,7 +32,10 @@ def generate_launch_description():
     robot_state_publisher = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
-        parameters=[{'robot_description': robot_description}],
+        parameters=[{
+            'robot_description': robot_description,
+            'use_sim_time': True,
+        }],
         output='screen',
     )
     clock_bridge = Node(
@@ -43,7 +46,14 @@ def generate_launch_description():
         ],
         output='screen',
     )
-
+    lidar_bridge = Node(
+    package='ros_gz_bridge',
+    executable='parameter_bridge',
+    arguments=[
+        '/scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
+    ],
+    output='screen',
+    )
     spawn_anchor = Node(
         package='ros_gz_sim',
         executable='create',
@@ -126,6 +136,7 @@ def generate_launch_description():
     return LaunchDescription([
         gazebo,
         robot_state_publisher,
+        lidar_bridge,
         clock_bridge,
         spawn_anchor,
         spawn_robot_after_anchor,

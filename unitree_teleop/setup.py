@@ -29,6 +29,8 @@ setup(
             'go2_controller = unitree_teleop.go2_controller:main',
             'champ_manual_adapter = unitree_teleop.champ_manual_adapter:main',
             'wasd_teleop = unitree_teleop.wasd_teleop:main',
+            'slam_pose_bridge = unitree_teleop.slam_pose_bridge:main',
+            'go2_motion_test = unitree_teleop.go2_motion_test:main',
         ],
     },
 )
