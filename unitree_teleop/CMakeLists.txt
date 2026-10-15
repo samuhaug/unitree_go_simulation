@@ -27,3 +27,8 @@ install(TARGETS
 )
 
 ament_package()
+
+install(PROGRAMS
+  scripts/go2_motion_test
+  DESTINATION lib/${PROJECT_NAME}
+)
