@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unitree Go2 Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <div>
+            <h1>🐕 Unitree Go2</h1>
+            <p>ROS 2 · Gazebo · Zentrale Steuerung</p>
+        </div>
+        <span id="connection" class="status">Verbinde ...</span>
+    </header>
+
+    <nav>
+        <button class="tab active" data-page="control">🎮 Steuerung</button>
+        <button class="tab" data-page="navigation">🗺️ Navigation</button>
+        <button class="tab" data-page="system">📊 Systemstatus</button>
+    </nav>
+
+    <main>
+        <section id="control" class="page active">
+            <h2>Manuelle Steuerung</h2>
+            <p>Steuere den Roboter mit WASD oder den Buttons.</p>
+
+            <div class="card">
+                <h3>Bewegung</h3>
+
+                <div class="controls">
+                    <button class="move" data-direction="w">W<br>▲</button>
+
+                    <div class="control-row">
+                        <button class="move" data-direction="a">A<br>◀</button>
+                        <button id="stop" class="stop">STOPP</button>
+                        <button class="move" data-direction="d">D<br>▶</button>
+                    </div>
+
+                    <button class="move" data-direction="s">S<br>▼</button>
+                </div>
+
+                <p id="movement">Aktuelle Bewegung: Stopp</p>
+                <p class="hint">Leertaste = Stopp · Taste loslassen = Stopp</p>
+            </div>
+
+            <div class="card">
+                <h3>Geschwindigkeit</h3>
+
+                <label for="forward">
+                    Vorwärts:
+                    <strong id="forward-value">0.05 m/s</strong>
+                </label>
+                <input id="forward" type="range"
+                       min="0.01" max="0.20" step="0.01" value="0.05">
+
+                <label for="backward">
+                    Rückwärts:
+                    <strong id="backward-value">0.10 m/s</strong>
+                </label>
+                <input id="backward" type="range"
+                       min="0.01" max="0.15" step="0.01" value="0.10">
+
+                <label for="turn">
+                    Drehung:
+                    <strong id="turn-value">0.20 rad/s</strong>
+                </label>
+                <input id="turn" type="range"
+                       min="0.02" max="0.30" step="0.02" value="0.20">
+            </div>
+        </section>
+
+        <section id="navigation" class="page">
+            <h2>Kartierung & Navigation</h2>
+
+            <div class="card">
+                <h3>🗺️ LiDAR-Karte</h3>
+                <p>Noch nicht verfügbar.</p>
+                <p>Hier integrieren wir später die Karte von Student 2.</p>
+            </div>
+
+            <div class="card">
+                <h3>📍 Autonome Navigation</h3>
+                <p>Noch nicht verfügbar.</p>
+                <p>Hier integrieren wir später die Navigation von Student 3.</p>
+            </div>
+        </section>
+
+        <section id="system" class="page">
+            <h2>Systemstatus</h2>
+
+            <div class="card">
+                <p><strong>Dashboard:</strong> <span id="server-status">Prüfe ...</span></p>
+                <p><strong>Betriebsmodus:</strong> Manuell</p>
+                <p><strong>Bewegungsbefehl:</strong> <span id="command-status">Stopp</span></p>
+                <p><strong>Simulation:</strong> Noch keine Statusüberwachung</p>
+                <p><strong>Navigation:</strong> Noch nicht integriert</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>Unitree Go2 Simulation · DHBW Robotertechnik 2026</footer>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

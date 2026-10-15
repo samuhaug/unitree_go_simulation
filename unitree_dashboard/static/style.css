@@ -1,0 +1,156 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #101827;
+    color: #e8edf5;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 6%;
+    background: #192438;
+    border-bottom: 1px solid #334155;
+}
+
+h1 {
+    margin: 0;
+    color: #60a5fa;
+}
+
+header p, .hint {
+    color: #94a3b8;
+}
+
+.status {
+    padding: 10px 16px;
+    border-radius: 20px;
+    background: #334155;
+}
+
+.status.online {
+    background: #14532d;
+    color: #bbf7d0;
+}
+
+.status.offline {
+    background: #7f1d1d;
+    color: #fecaca;
+}
+
+nav {
+    display: flex;
+    gap: 12px;
+    padding: 20px 6%;
+    flex-wrap: wrap;
+}
+
+button {
+    cursor: pointer;
+    border: 0;
+    border-radius: 10px;
+    font-size: 16px;
+}
+
+.tab {
+    padding: 12px 20px;
+    background: #273449;
+    color: white;
+}
+
+.tab.active {
+    background: #2563eb;
+}
+
+main {
+    max-width: 1050px;
+    margin: 0 auto;
+    padding: 10px 24px 40px;
+}
+
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+}
+
+.card {
+    background: #192438;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 25px;
+    margin-top: 22px;
+}
+
+.controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin: 25px 0;
+}
+
+.control-row {
+    display: flex;
+    gap: 12px;
+}
+
+.move, .stop {
+    width: 90px;
+    height: 75px;
+    font-weight: bold;
+}
+
+.move {
+    background: #2563eb;
+    color: white;
+}
+
+.move:hover, .move.pressed {
+    background: #60a5fa;
+}
+
+.stop {
+    background: #dc2626;
+    color: white;
+}
+
+.stop:hover {
+    background: #ef4444;
+}
+
+label {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 22px;
+}
+
+input[type="range"] {
+    width: 100%;
+    margin-top: 12px;
+    accent-color: #60a5fa;
+}
+
+footer {
+    text-align: center;
+    color: #94a3b8;
+    padding: 25px;
+}
+
+@media (max-width: 600px) {
+    header {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .move, .stop {
+        width: 75px;
+    }
+}

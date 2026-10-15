@@ -12,9 +12,9 @@ from launch.event_handlers import OnProcessExit
 def generate_launch_description():
     package_share = get_package_share_directory('unitree_description')
     world_file = os.path.join(package_share, 'worlds', 'go2_world.sdf')
-    xacro_file = os.path.join(package_share, 'urdf', 'unitree_go2_robot.xacro')   
+    xacro_file = os.path.join(package_share, 'urdf', 'unitree_go2_robot.xacro')
     anchor_file = os.path.join(package_share, 'worlds', 'go2_anchor.sdf')
-    robot_description = xacro.process_file(xacro_file).toxml()   
+    robot_description = xacro.process_file(xacro_file).toxml()
     gazebo_env = os.environ.copy()
     resource_path = os.path.dirname(package_share)
     existing_resource_path = gazebo_env.get('GZ_SIM_RESOURCE_PATH', '')
@@ -46,16 +46,14 @@ def generate_launch_description():
         ],
         output='screen',
     )
-
     lidar_bridge = Node(
-        package='ros_gz_bridge',
-        executable='parameter_bridge',
-        arguments=[
-            '/scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
-        ],
-        output='screen',
+    package='ros_gz_bridge',
+    executable='parameter_bridge',
+    arguments=[
+        '/scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
+    ],
+    output='screen',
     )
-
     spawn_anchor = Node(
         package='ros_gz_sim',
         executable='create',
@@ -99,7 +97,7 @@ def generate_launch_description():
 
     stand_command = ExecuteProcess(
         cmd=[
-            'ros2', 'topic', 'pub', '--once',
+            'ros2', 'topic', 'pub', '--rate', '10', '--times', '10',
             '/leg_position_controller/commands',
             'std_msgs/msg/Float64MultiArray',
             '{data: [0.0, 0.8, -1.6, 0.0, 0.8, -1.6, 0.0, 0.8, -1.6, 0.0, 0.8, -1.6]}',
@@ -138,8 +136,8 @@ def generate_launch_description():
     return LaunchDescription([
         gazebo,
         robot_state_publisher,
-        clock_bridge,
         lidar_bridge,
+        clock_bridge,
         spawn_anchor,
         spawn_robot_after_anchor,
         joint_state_broadcaster_spawner,

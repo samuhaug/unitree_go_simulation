@@ -65,7 +65,7 @@
         <link name="${name}_upper_leg_link">
             <visual>
                 <geometry>
-                    <mesh filename="package://unitree_description/meshes/thigh.dae"
+                    <mesh filename="package://unitree_description/meshes/${'thigh.dae' if mirror == 1 else 'thigh_mirror.dae'}"
                           scale="1 1 1"/>
                 </geometry>
             </visual>

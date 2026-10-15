@@ -9,10 +9,10 @@ class SlamPoseBridge(Node):
     def __init__(self):
         super().__init__('slam_pose_bridge')
         self.set_parameters([rclpy.parameter.Parameter(
-    		'use_sim_time',
-    		rclpy.Parameter.Type.BOOL,
-    		True
-	)])
+            'use_sim_time',
+            rclpy.Parameter.Type.BOOL,
+            True
+    )])
         self.tf_broadcaster = TransformBroadcaster(self)
         self.get_logger().info(
             'SLAM-Pose-Knoten gestartet. Warte auf Gazebo-Pose.'
