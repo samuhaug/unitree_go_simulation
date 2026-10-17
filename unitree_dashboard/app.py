@@ -30,12 +30,34 @@ def index():
 
 @app.route("/api/status")
 def status():
+    mode = controller.get_mode()
+
     return jsonify({
-        "connected": True,
-        "mode": "manual"
+        "connected": mode != "UNKNOWN",
+        "mode": mode
     })
+@app.route("/api/mode", methods=["POST"])
+def set_mode():
+    data = request.get_json(silent=True) or {}
+    mode = data.get("mode")
 
+    if not isinstance(mode, str):
+        return jsonify({"error": "Ungueltiger Modus"}), 400
 
+    mode = mode.strip().upper()
+
+    if mode not in ("MANUAL", "AUTO", "STOP"):
+        return jsonify({"error": "Ungueltiger Modus"}), 400
+
+    if controller.get_mode() == "UNKNOWN":
+        return jsonify({"error": "Control Mux nicht erreichbar"}), 503
+
+    controller.set_mode(mode)
+
+    return jsonify({
+        "success": True,
+        "requested_mode": mode
+    })
 @app.route("/api/control", methods=["POST"])
 def control():
     data = request.get_json(silent=True) or {}
@@ -52,7 +74,10 @@ def control():
     if not (-0.30 <= angular <= 0.30):
         return jsonify({"error": "Drehgeschwindigkeit ausserhalb des Bereichs"}), 400
 
-    controller.set_command(linear, angular)
+    if not controller.set_command(linear, angular):
+        return jsonify({
+            "error": "Manuelle Steuerung nicht aktiv"
+        }), 409
 
     return jsonify({
         "success": True,

@@ -45,8 +45,16 @@ def generate_launch_description():
         output="screen",
     )
 
+    control_mux = Node(
+        package="unitree_teleop",
+        executable="control_mux",
+        name="go2_control_mux",
+        output="screen",
+    )
+
     return LaunchDescription([
         gazebo_launch,
         champ_launch,
+        control_mux,
         adapter,
     ])

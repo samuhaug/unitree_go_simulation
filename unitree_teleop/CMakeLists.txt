@@ -39,6 +39,7 @@ install(PROGRAMS
   scripts/champ_manual_adapter
   scripts/wasd_teleop
   scripts/go2_motion_test
+  scripts/control_mux
   DESTINATION lib/${PROJECT_NAME}
 )
 

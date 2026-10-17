@@ -1,4 +1,6 @@
 const keys = new Set();
+let currentMode = "UNKNOWN";
+let modeRequestInProgress = false;
 let activeDirection = null;
 let requestInProgress = false;
 
@@ -68,6 +70,7 @@ function getCommand() {
 }
 
 async function sendCommand() {
+    if (currentMode !== "MANUAL" || modeRequestInProgress) return;
     if (requestInProgress) return;
 
     requestInProgress = true;
@@ -96,6 +99,10 @@ async function sendCommand() {
 }
 
 function updateDirection() {
+    if (currentMode !== "MANUAL") {
+        keys.clear();
+    }
+
     activeDirection = ["w", "s", "a", "d"].find(key => keys.has(key)) || null;
 
     document.querySelectorAll(".move").forEach(button => {
@@ -126,6 +133,7 @@ document.addEventListener("keydown", event => {
     }
 
     if (!["w", "a", "s", "d"].includes(key)) return;
+    if (currentMode !== "MANUAL" || modeRequestInProgress) return;
 
     if (event.target.tagName === "INPUT") return;
 
@@ -183,19 +191,113 @@ document.querySelectorAll(".tab").forEach(tab => {
     });
 });
 
+function applyMode(mode, connected) {
+    const previousMode = currentMode;
+
+    currentMode = connected ? mode : "UNKNOWN";
+
+    if (previousMode !== currentMode || currentMode !== "MANUAL") {
+        keys.clear();
+        activeDirection = null;
+
+        document.querySelectorAll(".move").forEach(button => {
+            button.classList.remove("pressed");
+        });
+
+        movement.textContent = "Aktuelle Bewegung: Stopp";
+        commandStatus.textContent = "Stopp";
+    }
+
+    const label = currentMode === "UNKNOWN"
+        ? "Nicht verbunden"
+        : currentMode;
+
+    document.getElementById("current-mode").textContent = label;
+    document.getElementById("system-mode").textContent = label;
+
+    document.querySelectorAll(".mode-button").forEach(button => {
+        button.disabled = !connected || modeRequestInProgress;
+        button.classList.toggle(
+            "active",
+            connected && button.dataset.mode === currentMode
+        );
+    });
+
+    document.querySelectorAll(".move").forEach(button => {
+        button.disabled = currentMode !== "MANUAL";
+    });
+}
+
+async function changeMode(mode) {
+    if (modeRequestInProgress || currentMode === "UNKNOWN") return;
+
+    modeRequestInProgress = true;
+    keys.clear();
+    activeDirection = null;
+
+    // Zuerst vorhandene manuelle Bewegung stoppen.
+    await fetch("/api/stop", { method: "POST" }).catch(() => {});
+
+    applyMode(currentMode, true);
+
+    try {
+        const response = await fetch("/api/mode", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mode })
+        });
+
+        if (!response.ok) throw new Error("Moduswechsel fehlgeschlagen");
+
+        // Tatsächlichen Modus anschließend vom Mux lesen.
+        await checkStatus();
+    } catch (error) {
+        connection.textContent = "Moduswechsel fehlgeschlagen";
+        connection.className = "status offline";
+    } finally {
+        modeRequestInProgress = false;
+        await checkStatus();
+    }
+}
+
+document.querySelectorAll(".mode-button").forEach(button => {
+    button.addEventListener("click", () => {
+        changeMode(button.dataset.mode);
+    });
+});
+
 async function checkStatus() {
     try {
-        const response = await fetch("/api/status");
+        const response = await fetch("/api/status", {
+            cache: "no-store"
+        });
+
         if (!response.ok) throw new Error();
 
-        connection.textContent = "Dashboard verbunden";
-        connection.className = "status online";
-        document.getElementById("server-status").textContent = "Online";
+        const data = await response.json();
+        const connected = data.connected === true;
+
+        applyMode(data.mode, connected);
+
+        connection.textContent = connected
+            ? "Control Mux verbunden"
+            : "Control Mux offline";
+
+        connection.className = connected
+            ? "status online"
+            : "status offline";
+
+        document.getElementById("server-status").textContent =
+            "Flask online";
+
     } catch {
+        applyMode("UNKNOWN", false);
+
         connection.textContent = "Dashboard offline";
         connection.className = "status offline";
-        document.getElementById("server-status").textContent = "Offline";
-        stopRobot();
+
+        document.getElementById("server-status").textContent =
+            "Offline";
     }
 }
 
