@@ -25,7 +25,33 @@
         <section id="control" class="page active">
             <h2>Manuelle Steuerung</h2>
             <p>Steuere den Roboter mit WASD oder den Buttons.</p>
+            <div class="card">
+            <h3>🎛️ Betriebsmodus</h3>
 
+            <div class="mode-controls">
+                <button class="mode-button" data-mode="MANUAL" disabled>
+                    🎮 MANUAL
+                </button>
+
+                <button class="mode-button" data-mode="AUTO" disabled>
+                    🤖 AUTO
+                </button>
+
+                <button class="mode-button" data-mode="STOP" disabled>
+                    🛑 STOPP
+                </button>
+            </div>
+
+            <p>
+                Aktueller Modus:
+                <strong id="current-mode">Nicht verbunden</strong>
+            </p>
+
+            <p class="hint">
+                MANUAL = Handsteuerung · AUTO = Navigation ·
+                STOPP = Bewegungsbefehle blockieren
+            </p>
+            </div>
             <div class="card">
                 <h3>Bewegung</h3>
 
@@ -92,7 +118,10 @@
 
             <div class="card">
                 <p><strong>Dashboard:</strong> <span id="server-status">Prüfe ...</span></p>
-                <p><strong>Betriebsmodus:</strong> Manuell</p>
+                <p>
+                    <strong>Betriebsmodus:</strong>
+                    <span id="system-mode">Nicht verbunden</span>
+                </p>
                 <p><strong>Bewegungsbefehl:</strong> <span id="command-status">Stopp</span></p>
                 <p><strong>Simulation:</strong> Noch keine Statusüberwachung</p>
                 <p><strong>Navigation:</strong> Noch nicht integriert</p>

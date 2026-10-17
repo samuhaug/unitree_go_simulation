@@ -154,3 +154,36 @@ footer {
         width: 75px;
     }
 }
+
+/* Betriebsmodus */
+.mode-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.mode-button {
+    padding: 14px 20px;
+    background: #334155;
+    color: white;
+    font-weight: bold;
+}
+
+.mode-button:hover:not(:disabled) {
+    background: #475569;
+}
+
+.mode-button.active {
+    background: #2563eb;
+}
+
+.mode-button[data-mode="STOP"].active {
+    background: #dc2626;
+}
+
+.mode-button:disabled,
+.move:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
