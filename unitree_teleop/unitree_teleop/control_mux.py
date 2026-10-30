@@ -46,7 +46,7 @@ class ControlMux(Node):
 
         self.create_subscription(
             Twist,
-            "/cmd_vel_nav",
+            "/cmd_vel_safe",
             self.auto_callback,
             10
         )
