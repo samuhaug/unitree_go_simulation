@@ -40,6 +40,7 @@ install(PROGRAMS
   scripts/wasd_teleop
   scripts/go2_motion_test
   scripts/control_mux
+  scripts/odom_tf_bridge
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -47,6 +48,7 @@ install(PROGRAMS
 install(DIRECTORY
   launch
   config
+  maps
   DESTINATION share/${PROJECT_NAME}
 )
 

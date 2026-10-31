@@ -8,6 +8,8 @@ from flask import Flask, jsonify, render_template, request
 sys.path.insert(0, os.path.dirname(__file__))
 
 from ros.manual_control import ManualControl
+from ros.navigation import cancel_navigation
+from ros.simulation import is_running, start_simulation
 
 
 app = Flask(__name__)
@@ -90,6 +92,45 @@ def control():
 def stop():
     controller.stop()
     return jsonify({"success": True})
+
+
+@app.route("/api/emergency_stop", methods=["POST"])
+def emergency_stop():
+    controller.stop()
+    controller.set_mode("STOP")
+
+    cancel_requested = cancel_navigation(controller)
+
+    return jsonify({
+        "success": True,
+        "requested_mode": "STOP",
+        "navigation_cancel_requested": cancel_requested
+    })
+
+
+@app.route("/api/simulation", methods=["GET"])
+def simulation_status():
+    return jsonify({"running": is_running()})
+
+
+@app.route("/api/simulation/start", methods=["POST"])
+def simulation_start():
+    if is_running():
+        return jsonify({
+            "success": False,
+            "message": "Simulation läuft bereits"
+        }), 409
+
+    if not start_simulation():
+        return jsonify({
+            "success": False,
+            "message": "Simulation konnte nicht gestartet werden"
+        }), 409
+
+    return jsonify({
+        "success": True,
+        "message": "Gazebo, Nav2 und RViz2 werden gestartet"
+    })
 
 
 if __name__ == "__main__":
