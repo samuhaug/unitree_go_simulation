@@ -101,15 +101,41 @@
             <h2>Kartierung & Navigation</h2>
 
             <div class="card">
-                <h3>🗺️ LiDAR-Karte</h3>
-                <p>Noch nicht verfügbar.</p>
-                <p>Hier integrieren wir später die Karte von Student 2.</p>
+                <h3>🚀 Simulation starten</h3>
+                <p>Startet Gazebo, Unitree Go2, Nav2 und RViz2 gemeinsam.</p>
+
+                <button id="start-simulation">
+                    🚀 Gazebo + Nav2 + RViz2 starten
+                </button>
+
+                <p>
+                    Simulationsstatus:
+                    <strong id="simulation-status">Prüfe ...</strong>
+                </p>
             </div>
 
             <div class="card">
-                <h3>📍 Autonome Navigation</h3>
-                <p>Noch nicht verfügbar.</p>
-                <p>Hier integrieren wir später die Navigation von Student 3.</p>
+                <h3>🗺️ LiDAR-Karte – Student 2</h3>
+                <p>✅ LiDAR-Karte erfolgreich integriert.</p>
+                <p>Die Karte wird beim Start automatisch in RViz2 geladen.</p>
+            </div>
+
+            <div class="card">
+                <h3>📍 Autonome Navigation – Student 3</h3>
+                <p>✅ Nav2 erfolgreich integriert und getestet.</p>
+                <p>Navigationsziele werden in RViz2 gesetzt.</p>
+                <p>Für die autonome Fahrt den Betriebsmodus AUTO aktivieren.</p>
+
+                <div class="mode-controls">
+                    <button class="mode-button" data-mode="AUTO" disabled>
+                        🤖 AUTO aktivieren
+                    </button>
+
+                    <button class="mode-button" data-mode="STOP" disabled>
+                        🛑 STOPP
+                    </button>
+                </div>
+                <p>Mit STOPP werden Bewegungsbefehle blockiert.</p>
             </div>
         </section>
 

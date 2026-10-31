@@ -261,7 +261,31 @@ async function changeMode(mode) {
 }
 
 document.querySelectorAll(".mode-button").forEach(button => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
+        if (
+            button.dataset.mode === "STOP" &&
+            button.closest("#navigation")
+        ) {
+            // Sofort STOP anfordern und Nav2-Ziel abbrechen.
+            button.disabled = true;
+
+            try {
+                const response = await fetch("/api/emergency_stop", {
+                    method: "POST"
+                });
+
+                if (!response.ok) {
+                    throw new Error("Not-Stopp fehlgeschlagen");
+                }
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                await checkStatus();
+            }
+
+            return;
+        }
+
         changeMode(button.dataset.mode);
     });
 });
@@ -307,3 +331,60 @@ setInterval(() => {
 
 setInterval(checkStatus, 2000);
 checkStatus();
+
+// Simulation: Status anzeigen und Startbutton steuern.
+const simulationButton = document.getElementById("start-simulation");
+const simulationStatus = document.getElementById("simulation-status");
+let simulationStarting = false;
+
+async function checkSimulation() {
+    try {
+        const response = await fetch("/api/simulation", {
+            cache: "no-store"
+        });
+
+        if (!response.ok) throw new Error("Statusabfrage fehlgeschlagen");
+
+        const data = await response.json();
+
+        simulationStatus.textContent = data.running
+            ? "🟢 Läuft"
+            : simulationStarting
+                ? "🟡 Startet ..."
+                : "⚪ Gestoppt";
+
+        if (data.running) simulationStarting = false;
+
+        simulationButton.disabled = data.running || simulationStarting;
+    } catch {
+        simulationStatus.textContent = "🔴 Status unbekannt";
+        simulationButton.disabled = true;
+    }
+}
+
+simulationButton.addEventListener("click", async () => {
+    if (simulationStarting) return;
+
+    simulationStarting = true;
+    simulationButton.disabled = true;
+    simulationStatus.textContent = "🟡 Startet ...";
+
+    try {
+        const response = await fetch("/api/simulation/start", {
+            method: "POST"
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.message || "Start fehlgeschlagen");
+        }
+    } catch (error) {
+        simulationStarting = false;
+        simulationStatus.textContent = error.message;
+    }
+
+    await checkSimulation();
+});
+
+setInterval(checkSimulation, 3000);
+checkSimulation();

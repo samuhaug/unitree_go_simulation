@@ -184,7 +184,11 @@ def generate_launch_description():
             ),
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
-                    '/home/anwender/unitree_go_simulation/unitree_teleop/launch/go2_navigation_launch.py'
+                    os.path.join(
+                        get_package_share_directory('unitree_teleop'),
+                        'launch',
+                        'go2_navigation_launch.py'
+                    )
                 ),
                 launch_arguments={
                     'namespace': namespace,
@@ -217,6 +221,16 @@ def generate_launch_description():
     ld.add_action(declare_use_respawn_cmd)
     ld.add_action(declare_log_level_cmd)
     ld.add_action(declare_use_localization_cmd)
+
+    ld.add_action(
+        Node(
+            package='unitree_teleop',
+            executable='odom_tf_bridge',
+            name='slam_pose_bridge',
+            parameters=[{'use_sim_time': use_sim_time}],
+            output='screen',
+        )
+    )
 
     # Add the actions to launch all of the navigation nodes
     ld.add_action(bringup_cmd_group)
