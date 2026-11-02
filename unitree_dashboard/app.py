@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from ros.manual_control import ManualControl
 from ros.navigation import cancel_navigation
-from ros.simulation import is_running, start_simulation
+from ros.simulation import is_running, start_simulation, stop_simulation
 
 
 app = Flask(__name__)
@@ -131,6 +131,22 @@ def simulation_start():
         "success": True,
         "message": "Gazebo, Nav2 und RViz2 werden gestartet"
     })
+
+
+@app.route("/api/simulation/stop", methods=["POST"])
+def simulation_stop():
+    # Zuerst Roboterbewegung und Navigation stoppen.
+    controller.stop()
+    controller.set_mode("STOP")
+    cancel_navigation(controller)
+
+    success, message = stop_simulation()
+
+    return jsonify({
+        "success": success,
+        "message": message,
+        "running": is_running()
+    }), 200 if success else 409
 
 
 if __name__ == "__main__":

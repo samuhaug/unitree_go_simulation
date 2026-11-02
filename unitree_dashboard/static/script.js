@@ -332,10 +332,13 @@ setInterval(() => {
 setInterval(checkStatus, 2000);
 checkStatus();
 
-// Simulation: Status anzeigen und Startbutton steuern.
+// Simulation starten und beenden.
 const simulationButton = document.getElementById("start-simulation");
+const stopSimulationButton = document.getElementById("stop-simulation");
 const simulationStatus = document.getElementById("simulation-status");
+
 let simulationStarting = false;
+let simulationStopping = false;
 
 async function checkSimulation() {
     try {
@@ -347,23 +350,31 @@ async function checkSimulation() {
 
         const data = await response.json();
 
-        simulationStatus.textContent = data.running
-            ? "🟢 Läuft"
-            : simulationStarting
-                ? "🟡 Startet ..."
-                : "⚪ Gestoppt";
+        simulationStatus.textContent = simulationStopping
+            ? "🟡 Wird beendet ..."
+            : data.running
+                ? "🟢 Läuft"
+                : simulationStarting
+                    ? "🟡 Startet ..."
+                    : "⚪ Gestoppt";
 
         if (data.running) simulationStarting = false;
 
-        simulationButton.disabled = data.running || simulationStarting;
+        simulationButton.disabled =
+            data.running || simulationStarting || simulationStopping;
+
+        stopSimulationButton.disabled =
+            !data.running || simulationStopping;
+
     } catch {
         simulationStatus.textContent = "🔴 Status unbekannt";
         simulationButton.disabled = true;
+        stopSimulationButton.disabled = true;
     }
 }
 
 simulationButton.addEventListener("click", async () => {
-    if (simulationStarting) return;
+    if (simulationStarting || simulationStopping) return;
 
     simulationStarting = true;
     simulationButton.disabled = true;
@@ -384,6 +395,38 @@ simulationButton.addEventListener("click", async () => {
     }
 
     await checkSimulation();
+});
+
+stopSimulationButton.addEventListener("click", async () => {
+    if (simulationStopping) return;
+
+    if (!confirm("Gesamte Simulation mit Gazebo, Nav2 und RViz2 beenden?")) {
+        return;
+    }
+
+    simulationStopping = true;
+    simulationStarting = false;
+
+    stopSimulationButton.disabled = true;
+    simulationButton.disabled = true;
+    simulationStatus.textContent = "🟡 Wird beendet ...";
+
+    try {
+        const response = await fetch("/api/simulation/stop", {
+            method: "POST"
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || "Beenden fehlgeschlagen");
+        }
+    } catch (error) {
+        alert("Simulation konnte nicht vollständig beendet werden: " + error.message);
+    } finally {
+        simulationStopping = false;
+        await checkSimulation();
+    }
 });
 
 setInterval(checkSimulation, 3000);
