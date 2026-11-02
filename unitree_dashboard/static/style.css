@@ -68,7 +68,7 @@ button {
 }
 
 main {
-    max-width: 1050px;
+    max-width: 1800px;
     margin: 0 auto;
     padding: 10px 24px 40px;
 }
@@ -228,3 +228,121 @@ footer {
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+/* ===== Gazebo-Liveansicht und Robotersteuerung ===== */
+
+.dashboard-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(300px, 3fr);
+    gap: 20px;
+    align-items: start;
+    margin-top: 20px;
+}
+
+.gazebo-panel {
+    min-width: 0;
+}
+
+#gazebo-view {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #111827;
+    border: 2px dashed #475569;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #94a3b8;
+    overflow: hidden;
+}
+
+.dashboard-controls {
+    min-width: 0;
+}
+
+.dashboard-controls .card {
+    margin-bottom: 16px;
+}
+
+.dashboard-controls h2 {
+    margin-top: 0;
+}
+
+/* Auf kleineren Bildschirmen untereinander anzeigen */
+@media (max-width: 1000px) {
+    .dashboard-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===== Kompakte Robotersteuerung rechts ===== */
+
+.dashboard-controls .card {
+    padding: 18px 22px;
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
+.dashboard-controls .card h3 {
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
+.dashboard-controls .mode-controls {
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.dashboard-controls .mode-button {
+    padding: 10px 14px;
+}
+
+.dashboard-controls .controls {
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.dashboard-controls .control-row {
+    gap: 8px;
+}
+
+.dashboard-controls .move,
+.dashboard-controls #stop {
+    width: 68px;
+    height: 58px;
+}
+
+.dashboard-controls label {
+    margin-top: 12px;
+}
+
+.dashboard-controls input[type="range"] {
+    margin-top: 6px;
+}
+
+.dashboard-controls .hint {
+    margin-bottom: 0;
+}
+
+
+/* ===== Gazebo und Steuerung auf gleicher Höhe ===== */
+
+@media (min-width: 1001px) {
+    .dashboard-layout {
+        align-items: stretch;
+    }
+
+    .gazebo-panel {
+        display: flex;
+        flex-direction: column;
+        margin-top: 0;
+    }
+
+    #gazebo-view {
+        flex: 1;
+        aspect-ratio: auto;
+        min-height: 500px;
+    }
+}
+

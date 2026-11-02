@@ -43,8 +43,16 @@
                     <strong id="simulation-status">Prüfe ...</strong>
                 </p>
             </div>
-            <h2>Manuelle Steuerung</h2>
-            <p>Steuere den Roboter mit WASD oder den Buttons.</p>
+            <div class="dashboard-layout">
+                <div class="gazebo-panel card">
+                    <h3>🎥 Gazebo-Liveansicht</h3>
+                    <div id="gazebo-view">
+                        <p>Gazebo-Livebild wird vorbereitet ...</p>
+                    </div>
+                </div>
+
+                <div class="dashboard-controls">
+                    <h2>🎮 Robotersteuerung</h2>
             <div class="card">
             <h3>🎛️ Betriebsmodus</h3>
 
@@ -114,6 +122,8 @@
                 </label>
                 <input id="turn" type="range"
                        min="0.02" max="0.30" step="0.02" value="0.20">
+            </div>
+                </div>
             </div>
         </section>
 
