@@ -8,7 +8,7 @@ from flask import Flask, jsonify, render_template, request
 sys.path.insert(0, os.path.dirname(__file__))
 
 from ros.manual_control import ManualControl
-from ros.navigation import cancel_navigation
+from ros.navigation import cancel_navigation, navigation_available
 from ros.simulation import is_running, start_simulation, stop_simulation
 
 
@@ -36,7 +36,8 @@ def status():
 
     return jsonify({
         "connected": mode != "UNKNOWN",
-        "mode": mode
+        "mode": mode,
+        "navigation_available": navigation_available(controller)
     })
 @app.route("/api/mode", methods=["POST"])
 def set_mode():
@@ -148,6 +149,8 @@ def simulation_stop():
         "running": is_running()
     }), 200 if success else 409
 
+
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 if __name__ == "__main__":
     try:

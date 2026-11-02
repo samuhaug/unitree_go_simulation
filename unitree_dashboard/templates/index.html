@@ -23,6 +23,26 @@
 
     <main>
         <section id="control" class="page active">
+            <div class="card">
+                <h3>🚀 Simulation starten</h3>
+                <p>Startet Gazebo, Unitree Go2, Nav2 und RViz2 gemeinsam.</p>
+
+                <button id="start-simulation">
+                    🚀 Gazebo + Nav2 + RViz2 starten
+                </button>
+
+                <button id="stop-simulation"
+                        class="stop"
+                        type="button"
+                        disabled>
+                    🛑 Simulation beenden
+                </button>
+
+                <p>
+                    Simulationsstatus:
+                    <strong id="simulation-status">Prüfe ...</strong>
+                </p>
+            </div>
             <h2>Manuelle Steuerung</h2>
             <p>Steuere den Roboter mit WASD oder den Buttons.</p>
             <div class="card">
@@ -100,37 +120,18 @@
         <section id="navigation" class="page">
             <h2>Kartierung & Navigation</h2>
 
+
+
             <div class="card">
-                <h3>🚀 Simulation starten</h3>
-                <p>Startet Gazebo, Unitree Go2, Nav2 und RViz2 gemeinsam.</p>
+                <h3>🗺️ LiDAR-Karte</h3>
+                <p>Beim Öffnen in RViz2 sichtbar.</p>
 
-                <button id="start-simulation">
-                    🚀 Gazebo + Nav2 + RViz2 starten
-                </button>
-
-                <button id="stop-simulation"
-                        class="stop"
-                        type="button"
-                        disabled>
-                    🛑 Simulation beenden
-                </button>
-
-                <p>
-                    Simulationsstatus:
-                    <strong id="simulation-status">Prüfe ...</strong>
-                </p>
             </div>
 
             <div class="card">
-                <h3>🗺️ LiDAR-Karte – Student 2</h3>
-                <p>✅ LiDAR-Karte erfolgreich integriert.</p>
-                <p>Die Karte wird beim Start automatisch in RViz2 geladen.</p>
-            </div>
+                <h3>📍 Autonome Navigation</h3>
 
-            <div class="card">
-                <h3>📍 Autonome Navigation – Student 3</h3>
-                <p>✅ Nav2 erfolgreich integriert und getestet.</p>
-                <p>Navigationsziele werden in RViz2 gesetzt.</p>
+                <p>Navigationsziele in RViz2 über „2D Goal Pose“ mit der linken Maustaste setzen.</p>
                 <p>Für die autonome Fahrt den Betriebsmodus AUTO aktivieren.</p>
 
                 <div class="mode-controls">
@@ -156,8 +157,8 @@
                     <span id="system-mode">Nicht verbunden</span>
                 </p>
                 <p><strong>Bewegungsbefehl:</strong> <span id="command-status">Stopp</span></p>
-                <p><strong>Simulation:</strong> Noch keine Statusüberwachung</p>
-                <p><strong>Navigation:</strong> Noch nicht integriert</p>
+                <p><strong>Simulation:</strong> <span id="system-simulation">Prüfe ...</span></p>
+                <p><strong>Navigation:</strong> <span id="system-navigation">Prüfe ...</span></p>
             </div>
         </section>
     </main>

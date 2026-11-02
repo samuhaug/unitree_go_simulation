@@ -32,3 +32,20 @@ def cancel_navigation(controller):
 
     future.add_done_callback(on_cancel_done)
     return True
+
+
+def navigation_available(controller):
+    """Prüft, ob der Nav2-Action-Server erreichbar ist."""
+    from nav2_msgs.action import NavigateToPose
+    from rclpy.action import ActionClient
+
+    client = ActionClient(
+        controller,
+        NavigateToPose,
+        "/navigate_to_pose"
+    )
+
+    try:
+        return client.server_is_ready()
+    finally:
+        client.destroy()

@@ -303,6 +303,14 @@ async function checkStatus() {
 
         applyMode(data.mode, connected);
 
+        // Nav2-Status auf der Systemstatus-Seite anzeigen.
+        const systemNavigation = document.getElementById("system-navigation");
+        if (systemNavigation) {
+            systemNavigation.textContent = data.navigation_available === true
+                ? "🟢 Nav2 erreichbar"
+                : "⚪ Nav2 nicht erreichbar";
+        }
+
         connection.textContent = connected
             ? "Control Mux verbunden"
             : "Control Mux offline";
@@ -357,6 +365,12 @@ async function checkSimulation() {
                 : simulationStarting
                     ? "🟡 Startet ..."
                     : "⚪ Gestoppt";
+
+        // Simulationsstatus auch auf der Systemstatus-Seite anzeigen.
+        const systemSimulation = document.getElementById("system-simulation");
+        if (systemSimulation) {
+            systemSimulation.textContent = simulationStatus.textContent;
+        }
 
         if (data.running) simulationStarting = false;
 
