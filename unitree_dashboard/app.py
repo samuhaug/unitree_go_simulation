@@ -1,12 +1,15 @@
 import os
 import sys
 import threading
+import time
 
 import rclpy
-from flask import Flask, jsonify, render_template, request
+from rclpy.executors import MultiThreadedExecutor
+from flask import Flask, Response, jsonify, render_template, request
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+from ros.camera import DashboardCamera
 from ros.manual_control import ManualControl
 from ros.navigation import cancel_navigation, navigation_available
 from ros.simulation import is_running, start_simulation, stop_simulation
@@ -17,9 +20,15 @@ app = Flask(__name__)
 rclpy.init()
 controller = ManualControl()
 
+# Gemeinsamer ROS2-Executor für Steuerung und Kamera
+camera = DashboardCamera()
+
+executor = MultiThreadedExecutor(num_threads=2)
+executor.add_node(controller)
+executor.add_node(camera)
+
 ros_thread = threading.Thread(
-    target=rclpy.spin,
-    args=(controller,),
+    target=executor.spin,
     daemon=True
 )
 ros_thread.start()
@@ -28,6 +37,32 @@ ros_thread.start()
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+
+@app.route("/api/camera/stream")
+def camera_stream():
+    def generate():
+        while True:
+            jpeg = camera.get_jpeg()
+
+            if jpeg is not None:
+                yield (
+                    b"--frame\r\n"
+                    b"Content-Type: image/jpeg\r\n"
+                    + f"Content-Length: {len(jpeg)}\r\n".encode()
+                    + b"\r\n"
+                    + jpeg
+                    + b"\r\n"
+                )
+
+            time.sleep(1 / 30)
+
+    return Response(
+        generate(),
+        content_type="multipart/x-mixed-replace; boundary=frame",
+        headers={"Cache-Control": "no-cache"}
+    )
 
 
 @app.route("/api/status")
@@ -162,5 +197,8 @@ if __name__ == "__main__":
         )
     finally:
         controller.stop()
+        executor.shutdown()
+        ros_thread.join(timeout=2)
+        camera.destroy_node()
         controller.destroy_node()
         rclpy.shutdown()

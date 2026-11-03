@@ -48,8 +48,18 @@ def generate_launch_description():
         output='screen',
     )
 
+    # Gazebo-Kamera automatisch nach ROS2 übertragen
+    camera_bridge = Node(
+        package='ros_gz_image',
+        executable='image_bridge',
+        name='dashboard_camera_bridge',
+        arguments=['/dashboard/camera/image'],
+        output='screen',
+    )
+
     return LaunchDescription([
         simulation,
+        camera_bridge,
         TimerAction(
             period=15.0,
             actions=[navigation, rviz],
