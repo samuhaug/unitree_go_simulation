@@ -27,6 +27,12 @@ function updateSliderLabels() {
 
 Object.values(sliders).forEach(slider => {
     slider.addEventListener("input", updateSliderLabels);
+
+    // Nach der Mausbedienung Fokus freigeben,
+    // damit WASD weiterhin funktioniert.
+    slider.addEventListener("pointerup", () => {
+        slider.blur();
+    });
 });
 
 updateSliderLabels();
@@ -124,7 +130,12 @@ function stopRobot() {
 }
 
 document.addEventListener("keydown", event => {
-    const key = event.key.toLowerCase();
+    const key = ({
+        KeyW: "w",
+        KeyA: "a",
+        KeyS: "s",
+        KeyD: "d"
+    })[event.code] || event.key.toLowerCase();
 
     if (event.code === "Space") {
         event.preventDefault();
@@ -143,7 +154,12 @@ document.addEventListener("keydown", event => {
 });
 
 document.addEventListener("keyup", event => {
-    const key = event.key.toLowerCase();
+    const key = ({
+        KeyW: "w",
+        KeyA: "a",
+        KeyS: "s",
+        KeyD: "d"
+    })[event.code] || event.key.toLowerCase();
 
     if (!["w", "a", "s", "d"].includes(key)) return;
 

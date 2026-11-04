@@ -35,8 +35,12 @@ ORDER = [
 START = [0.0, 0.8, -1.6] * 4
 
 STAND_SECONDS = 8.0
-RATE = 20.0
+RATE = 30.0
 MAX_SPEED = 1.0
+
+# Maximale Beschleunigung pro Sekunde
+LINEAR_ACCEL = 0.45
+ANGULAR_ACCEL = 0.80
 CMD_TIMEOUT = 0.5
 CHAMP_TIMEOUT = 0.5
 
@@ -84,6 +88,7 @@ class ManualAdapter(Node):
         self.last_cmd = None
         self.last_champ = None
         self.requested_velocity = Twist()
+        self.smoothed_velocity = Twist()
 
         self.timer = self.create_timer(
             1.0 / RATE,
@@ -100,13 +105,13 @@ class ManualAdapter(Node):
         velocity = Twist()
 
         velocity.linear.x = max(
-            -0.15,
-            min(0.20, msg.linear.x),
+            -0.20,
+            min(0.30, msg.linear.x),
         )
 
         velocity.angular.z = max(
-            -0.30,
-            min(0.30, msg.angular.z),
+            -0.40,
+            min(0.40, msg.angular.z),
         )
 
         self.requested_velocity = velocity
@@ -192,7 +197,29 @@ class ManualAdapter(Node):
             if age <= CMD_TIMEOUT:
                 velocity = self.requested_velocity
 
-        self.velocity_pub.publish(velocity)
+        # Nur beim aktiven Fahrbefehl sanft beschleunigen.
+        # Bei STOP oder Timeout sofort auf null setzen.
+        if velocity.linear.x == 0.0 and velocity.angular.z == 0.0:
+            self.smoothed_velocity = Twist()
+        else:
+            linear_step = LINEAR_ACCEL / RATE
+            angular_step = ANGULAR_ACCEL / RATE
+
+            linear_delta = (
+                velocity.linear.x - self.smoothed_velocity.linear.x
+            )
+            angular_delta = (
+                velocity.angular.z - self.smoothed_velocity.angular.z
+            )
+
+            self.smoothed_velocity.linear.x += max(
+                -linear_step, min(linear_step, linear_delta)
+            )
+            self.smoothed_velocity.angular.z += max(
+                -angular_step, min(angular_step, angular_delta)
+            )
+
+        self.velocity_pub.publish(self.smoothed_velocity)
 
         if self.stand is None:
             return

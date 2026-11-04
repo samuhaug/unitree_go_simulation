@@ -106,10 +106,10 @@ def control():
     except (TypeError, ValueError):
         return jsonify({"error": "Ungueltige Geschwindigkeit"}), 400
 
-    if not (-0.15 <= linear <= 0.20):
+    if not (-0.20 <= linear <= 0.30):
         return jsonify({"error": "Lineargeschwindigkeit ausserhalb des Bereichs"}), 400
 
-    if not (-0.30 <= angular <= 0.30):
+    if not (-0.40 <= angular <= 0.40):
         return jsonify({"error": "Drehgeschwindigkeit ausserhalb des Bereichs"}), 400
 
     if not controller.set_command(linear, angular):
