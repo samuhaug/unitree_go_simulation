@@ -129,7 +129,10 @@ class ControlMux(Node):
             -0.20,
             min(0.30, msg.linear.x)
         )
-
+        command.linear.y = max(
+            -0.15,
+            min(0.15, msg.linear.y)
+        ) 
         command.angular.z = max(
             -0.40,
             min(0.40, msg.angular.z)

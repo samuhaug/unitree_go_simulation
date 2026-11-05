@@ -6,6 +6,7 @@ import rclpy
 from rclpy.node import Node
 
 from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64MultiArray
 from trajectory_msgs.msg import JointTrajectory
 
@@ -46,6 +47,20 @@ CHAMP_TIMEOUT = 0.5
 
 MAX_DEVIATION = [0.15, 0.25, 0.35] * 4
 
+DRIFT_GAIN = 0.12
+DRIFT_MAX = 0.08
+DRIFT_ALPHA = 0.03
+DRIFT_INITIAL = -0.03
+
+TURN_DRIFT_GAIN = 0.10
+TURN_DRIFT_MAX = 0.08
+TURN_DRIFT_INITIAL = -0.02
+
+TURN_Y_GAIN = 0.05
+TURN_Y_MAX = 0.05
+TURN_Y_INITIAL = 0.0
+
+
 
 class ManualAdapter(Node):
 
@@ -78,6 +93,22 @@ class ManualAdapter(Node):
             10,
         )
 
+        self.odom_x_filtered = 0.0
+        self.odom_y_filtered = 0.0
+        self.odom_received = False
+        self.drift_correction = DRIFT_INITIAL
+        self.drift_active = False
+        self.turn_drift_correction = TURN_DRIFT_INITIAL
+        self.turn_drift_active = False
+        self.turn_y_correction = TURN_Y_INITIAL
+
+        self.create_subscription(
+            Odometry,
+            "/odom",
+            self.odom_callback,
+            10,
+        )
+
         self.current = START.copy()
         self.stand = None
         self.target = START.copy()
@@ -100,13 +131,39 @@ class ManualAdapter(Node):
             "Warte auf Standposition."
         )
 
+    def odom_callback(self, msg):
+        measured_x = msg.twist.twist.linear.x
+        measured_y = msg.twist.twist.linear.y
+
+        if not (math.isfinite(measured_x) and math.isfinite(measured_y)):
+            return
+
+        if not self.odom_received:
+            self.odom_x_filtered = measured_x
+            self.odom_y_filtered = measured_y
+            self.odom_received = True
+        else:
+            self.odom_x_filtered = (
+                (1.0 - DRIFT_ALPHA) * self.odom_x_filtered
+                + DRIFT_ALPHA * measured_x
+            )
+            self.odom_y_filtered = (
+                (1.0 - DRIFT_ALPHA) * self.odom_y_filtered
+                + DRIFT_ALPHA * measured_y
+            )
+
     def velocity_callback(self, msg):
-        # Nur die benötigten Bewegungsrichtungen erlauben.
+        # Erlaubte Bewegungsrichtungen begrenzen.
         velocity = Twist()
 
         velocity.linear.x = max(
             -0.20,
             min(0.30, msg.linear.x),
+        )
+
+        velocity.linear.y = max(
+            -0.15,
+            min(0.15, msg.linear.y),
         )
 
         velocity.angular.z = max(
@@ -197,28 +254,102 @@ class ManualAdapter(Node):
             if age <= CMD_TIMEOUT:
                 velocity = self.requested_velocity
 
+        # Adaptive Rueckwaertskorrektur nur beim Seitwaertslaufen.
+        sideways = (
+            abs(velocity.linear.y) > 0.01
+            and abs(velocity.linear.x) < 0.06
+            and abs(velocity.angular.z) < 0.01
+        )
+
+        if sideways:
+            if not self.drift_active:
+                self.drift_correction = DRIFT_INITIAL
+                self.drift_active = True
+
+            if self.odom_received:
+                self.drift_correction -= (
+                    DRIFT_GAIN * self.odom_x_filtered / RATE
+                )
+
+            self.drift_correction = max(
+                -DRIFT_MAX,
+                min(0.0, self.drift_correction),
+            )
+            velocity.linear.x = self.drift_correction
+        else:
+            self.drift_active = False
+            self.drift_correction = DRIFT_INITIAL
+
+        # Adaptive Vorwaertsdriftkorrektur bei reiner Drehung (A/D).
+        turning = (
+            abs(velocity.angular.z) > 0.01
+            and abs(velocity.linear.x) < 0.06
+            and abs(velocity.linear.y) < 0.01
+        )
+
+        if turning:
+            if not self.turn_drift_active:
+                self.turn_drift_correction = TURN_DRIFT_INITIAL
+                self.turn_drift_active = True
+
+            if self.odom_received:
+                self.turn_drift_correction -= (
+                    TURN_DRIFT_GAIN * self.odom_x_filtered / RATE
+                )
+
+            self.turn_drift_correction = max(
+                -TURN_DRIFT_MAX,
+                min(0.0, self.turn_drift_correction),
+            )
+            velocity.linear.x = self.turn_drift_correction
+
+            # Seitliche Drift beim Drehen adaptiv ausgleichen.
+            if self.odom_received:
+                self.turn_y_correction -= (
+                    TURN_Y_GAIN * self.odom_y_filtered / RATE
+                )
+
+            self.turn_y_correction = max(
+                -TURN_Y_MAX,
+                min(TURN_Y_MAX, self.turn_y_correction),
+            )
+            velocity.linear.y = self.turn_y_correction
+        else:
+            self.turn_drift_active = False
+            self.turn_drift_correction = TURN_DRIFT_INITIAL
+            self.turn_y_correction = TURN_Y_INITIAL
+
         # Nur beim aktiven Fahrbefehl sanft beschleunigen.
         # Bei STOP oder Timeout sofort auf null setzen.
-        if velocity.linear.x == 0.0 and velocity.angular.z == 0.0:
+        if (
+            velocity.linear.x == 0.0
+            and velocity.linear.y == 0.0
+            and velocity.angular.z == 0.0
+        ):
             self.smoothed_velocity = Twist()
         else:
             linear_step = LINEAR_ACCEL / RATE
             angular_step = ANGULAR_ACCEL / RATE
 
-            linear_delta = (
+            linear_x_delta = (
                 velocity.linear.x - self.smoothed_velocity.linear.x
+            )
+            linear_y_delta = (
+                velocity.linear.y - self.smoothed_velocity.linear.y
             )
             angular_delta = (
                 velocity.angular.z - self.smoothed_velocity.angular.z
             )
 
             self.smoothed_velocity.linear.x += max(
-                -linear_step, min(linear_step, linear_delta)
+                -linear_step, min(linear_step, linear_x_delta)
+            )
+            self.smoothed_velocity.linear.y += max(
+                -linear_step, min(linear_step, linear_y_delta)
             )
             self.smoothed_velocity.angular.z += max(
                 -angular_step, min(angular_step, angular_delta)
             )
-
         self.velocity_pub.publish(self.smoothed_velocity)
 
         if self.stand is None:

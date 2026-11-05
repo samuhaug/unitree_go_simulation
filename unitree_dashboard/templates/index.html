@@ -88,7 +88,13 @@
                 <h3>Bewegung</h3>
 
                 <div class="controls">
-                    <button class="move" data-direction="w">W<br>▲</button>
+                    <div class="control-row">
+                        <button class="move" data-direction="q"
+                                title="Seitwärts links">Q<br>⇦</button>
+                        <button class="move" data-direction="w">W<br>▲</button>
+                        <button class="move" data-direction="e"
+                                title="Seitwärts rechts">E<br>⇨</button>
+                    </div>
 
                     <div class="control-row">
                         <button class="move" data-direction="a">A<br>◀</button>
@@ -100,7 +106,7 @@
                 </div>
 
                 <p id="movement">Aktuelle Bewegung: Stopp</p>
-                <p class="hint">Leertaste = Stopp · Taste loslassen = Stopp</p>
+                <p class="hint">W/S = Fahren · A/D = Drehen · Q/E = Seitwärts · Leertaste = Stopp</p>
             </div>
 
             <div class="card">

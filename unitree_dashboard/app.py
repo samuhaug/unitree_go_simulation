@@ -102,6 +102,7 @@ def control():
 
     try:
         linear = float(data.get("linear", 0.0))
+        lateral = float(data.get("lateral", 0.0))
         angular = float(data.get("angular", 0.0))
     except (TypeError, ValueError):
         return jsonify({"error": "Ungueltige Geschwindigkeit"}), 400
@@ -112,7 +113,12 @@ def control():
     if not (-0.40 <= angular <= 0.40):
         return jsonify({"error": "Drehgeschwindigkeit ausserhalb des Bereichs"}), 400
 
-    if not controller.set_command(linear, angular):
+    if not (-0.15 <= lateral <= 0.15):
+        return jsonify({
+            "error": "Seitwaertsgeschwindigkeit ausserhalb des Bereichs"
+        }), 400
+
+    if not controller.set_command(linear, angular, lateral):
         return jsonify({
             "error": "Manuelle Steuerung nicht aktiv"
         }), 409
@@ -120,6 +126,7 @@ def control():
     return jsonify({
         "success": True,
         "linear": linear,
+        "lateral": lateral,
         "angular": angular
     })
 

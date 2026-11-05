@@ -72,7 +72,25 @@ function getCommand() {
         };
     }
 
-    return { linear: 0, angular: 0, name: "Stopp" };
+    if (direction === "q") {
+        return {
+            linear: 0,
+            lateral: 0.15,
+            angular: 0,
+            name: "Seitwärts links"
+        };
+    }
+
+    if (direction === "e") {
+        return {
+            linear: 0,
+            lateral: -0.15,
+            angular: 0,
+            name: "Seitwärts rechts"
+        };
+    }
+
+    return { linear: 0, lateral: 0, angular: 0, name: "Stopp" };
 }
 
 async function sendCommand() {
@@ -91,6 +109,7 @@ async function sendCommand() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 linear: command.linear,
+                lateral: command.lateral ?? 0,
                 angular: command.angular
             })
         });
@@ -109,7 +128,7 @@ function updateDirection() {
         keys.clear();
     }
 
-    activeDirection = ["w", "s", "a", "d"].find(key => keys.has(key)) || null;
+    activeDirection = ["w", "s", "a", "d", "q", "e"].find(key => keys.has(key)) || null;
 
     document.querySelectorAll(".move").forEach(button => {
         button.classList.toggle(
@@ -134,7 +153,9 @@ document.addEventListener("keydown", event => {
         KeyW: "w",
         KeyA: "a",
         KeyS: "s",
-        KeyD: "d"
+        KeyD: "d",
+        KeyQ: "q",
+        KeyE: "e"
     })[event.code] || event.key.toLowerCase();
 
     if (event.code === "Space") {
@@ -143,7 +164,7 @@ document.addEventListener("keydown", event => {
         return;
     }
 
-    if (!["w", "a", "s", "d"].includes(key)) return;
+    if (!["w", "a", "s", "d", "q", "e"].includes(key)) return;
     if (currentMode !== "MANUAL" || modeRequestInProgress) return;
 
     if (event.target.tagName === "INPUT") return;
@@ -158,10 +179,12 @@ document.addEventListener("keyup", event => {
         KeyW: "w",
         KeyA: "a",
         KeyS: "s",
-        KeyD: "d"
+        KeyD: "d",
+        KeyQ: "q",
+        KeyE: "e"
     })[event.code] || event.key.toLowerCase();
 
-    if (!["w", "a", "s", "d"].includes(key)) return;
+    if (!["w", "a", "s", "d", "q", "e"].includes(key)) return;
 
     keys.delete(key);
     updateDirection();
