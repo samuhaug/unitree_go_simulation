@@ -52,11 +52,16 @@ DRIFT_MAX = 0.08
 DRIFT_ALPHA = 0.03
 DRIFT_INITIAL = -0.03
 
-TURN_DRIFT_GAIN = 0.10
+# Geschwindigkeitsregelung fuer Q/E.
+SIDEWAYS_SPEED_GAIN = 0.08
+SIDEWAYS_SPEED_MAX_CORRECTION = 0.05
+
+
+TURN_DRIFT_GAIN = 0.35
 TURN_DRIFT_MAX = 0.08
 TURN_DRIFT_INITIAL = -0.02
 
-TURN_Y_GAIN = 0.05
+TURN_Y_GAIN = 0.40
 TURN_Y_MAX = 0.05
 TURN_Y_INITIAL = 0.0
 
@@ -98,6 +103,7 @@ class ManualAdapter(Node):
         self.odom_received = False
         self.drift_correction = DRIFT_INITIAL
         self.drift_active = False
+        self.sideways_speed_correction = 0.0
         self.turn_drift_correction = TURN_DRIFT_INITIAL
         self.turn_drift_active = False
         self.turn_y_correction = TURN_Y_INITIAL
@@ -162,8 +168,8 @@ class ManualAdapter(Node):
         )
 
         velocity.linear.y = max(
-            -0.15,
-            min(0.15, msg.linear.y),
+            -0.30,
+            min(0.30, msg.linear.y),
         )
 
         velocity.angular.z = max(
@@ -252,7 +258,9 @@ class ManualAdapter(Node):
             ).nanoseconds / 1e9
 
             if age <= CMD_TIMEOUT:
-                velocity = self.requested_velocity
+                velocity.linear.x = self.requested_velocity.linear.x
+                velocity.linear.y = self.requested_velocity.linear.y
+                velocity.angular.z = self.requested_velocity.angular.z
 
         # Adaptive Rueckwaertskorrektur nur beim Seitwaertslaufen.
         sideways = (
@@ -276,9 +284,28 @@ class ManualAdapter(Node):
                 min(0.0, self.drift_correction),
             )
             velocity.linear.x = self.drift_correction
+
+            # Seitwaertsgeschwindigkeit anhand der Odometrie regeln.
+            if self.odom_received:
+                speed_error = (
+                    velocity.linear.y - self.odom_y_filtered
+                )
+                self.sideways_speed_correction += (
+                    SIDEWAYS_SPEED_GAIN * speed_error / RATE
+                )
+
+            self.sideways_speed_correction = max(
+                -SIDEWAYS_SPEED_MAX_CORRECTION,
+                min(
+                    SIDEWAYS_SPEED_MAX_CORRECTION,
+                    self.sideways_speed_correction,
+                ),
+            )
+            velocity.linear.y += self.sideways_speed_correction
         else:
             self.drift_active = False
             self.drift_correction = DRIFT_INITIAL
+            self.sideways_speed_correction = 0.0
 
         # Adaptive Vorwaertsdriftkorrektur bei reiner Drehung (A/D).
         turning = (

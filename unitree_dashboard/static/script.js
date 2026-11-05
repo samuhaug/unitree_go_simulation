@@ -11,7 +11,8 @@ const commandStatus = document.getElementById("command-status");
 const sliders = {
     forward: document.getElementById("forward"),
     backward: document.getElementById("backward"),
-    turn: document.getElementById("turn")
+    turn: document.getElementById("turn"),
+    sideways: document.getElementById("sideways")
 };
 
 function updateSliderLabels() {
@@ -23,6 +24,9 @@ function updateSliderLabels() {
 
     document.getElementById("turn-value").textContent =
         Number(sliders.turn.value).toFixed(2) + " rad/s";
+
+    document.getElementById("sideways-value").textContent =
+        Number(sliders.sideways.value).toFixed(2) + " m/s";
 }
 
 Object.values(sliders).forEach(slider => {
@@ -75,7 +79,7 @@ function getCommand() {
     if (direction === "q") {
         return {
             linear: 0,
-            lateral: 0.15,
+            lateral: Number(sliders.sideways.value),
             angular: 0,
             name: "Seitwärts links"
         };
@@ -84,7 +88,7 @@ function getCommand() {
     if (direction === "e") {
         return {
             linear: 0,
-            lateral: -0.15,
+            lateral: -Number(sliders.sideways.value),
             angular: 0,
             name: "Seitwärts rechts"
         };

@@ -113,7 +113,7 @@ def control():
     if not (-0.40 <= angular <= 0.40):
         return jsonify({"error": "Drehgeschwindigkeit ausserhalb des Bereichs"}), 400
 
-    if not (-0.15 <= lateral <= 0.15):
+    if not (-0.30 <= lateral <= 0.30):
         return jsonify({
             "error": "Seitwaertsgeschwindigkeit ausserhalb des Bereichs"
         }), 400

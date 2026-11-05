@@ -82,7 +82,7 @@ class ManualControl(Node):
                 return False
 
             self.linear = max(-0.20, min(0.30, float(linear)))
-            self.lateral = max(-0.15, min(0.15, float(lateral)))
+            self.lateral = max(-0.30, min(0.30, float(lateral)))
             self.angular = max(-0.40, min(0.40, float(angular)))
             self.last_command = time.monotonic()
 
