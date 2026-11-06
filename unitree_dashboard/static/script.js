@@ -11,7 +11,8 @@ const commandStatus = document.getElementById("command-status");
 const sliders = {
     forward: document.getElementById("forward"),
     backward: document.getElementById("backward"),
-    turn: document.getElementById("turn")
+    turn: document.getElementById("turn"),
+    sideways: document.getElementById("sideways")
 };
 
 function updateSliderLabels() {
@@ -23,10 +24,19 @@ function updateSliderLabels() {
 
     document.getElementById("turn-value").textContent =
         Number(sliders.turn.value).toFixed(2) + " rad/s";
+
+    document.getElementById("sideways-value").textContent =
+        Number(sliders.sideways.value).toFixed(2) + " m/s";
 }
 
 Object.values(sliders).forEach(slider => {
     slider.addEventListener("input", updateSliderLabels);
+
+    // Nach der Mausbedienung Fokus freigeben,
+    // damit WASD weiterhin funktioniert.
+    slider.addEventListener("pointerup", () => {
+        slider.blur();
+    });
 });
 
 updateSliderLabels();
@@ -66,7 +76,25 @@ function getCommand() {
         };
     }
 
-    return { linear: 0, angular: 0, name: "Stopp" };
+    if (direction === "q") {
+        return {
+            linear: 0,
+            lateral: Number(sliders.sideways.value),
+            angular: 0,
+            name: "Seitwärts links"
+        };
+    }
+
+    if (direction === "e") {
+        return {
+            linear: 0,
+            lateral: -Number(sliders.sideways.value),
+            angular: 0,
+            name: "Seitwärts rechts"
+        };
+    }
+
+    return { linear: 0, lateral: 0, angular: 0, name: "Stopp" };
 }
 
 async function sendCommand() {
@@ -85,6 +113,7 @@ async function sendCommand() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 linear: command.linear,
+                lateral: command.lateral ?? 0,
                 angular: command.angular
             })
         });
@@ -103,7 +132,7 @@ function updateDirection() {
         keys.clear();
     }
 
-    activeDirection = ["w", "s", "a", "d"].find(key => keys.has(key)) || null;
+    activeDirection = ["w", "s", "a", "d", "q", "e"].find(key => keys.has(key)) || null;
 
     document.querySelectorAll(".move").forEach(button => {
         button.classList.toggle(
@@ -124,7 +153,14 @@ function stopRobot() {
 }
 
 document.addEventListener("keydown", event => {
-    const key = event.key.toLowerCase();
+    const key = ({
+        KeyW: "w",
+        KeyA: "a",
+        KeyS: "s",
+        KeyD: "d",
+        KeyQ: "q",
+        KeyE: "e"
+    })[event.code] || event.key.toLowerCase();
 
     if (event.code === "Space") {
         event.preventDefault();
@@ -132,7 +168,7 @@ document.addEventListener("keydown", event => {
         return;
     }
 
-    if (!["w", "a", "s", "d"].includes(key)) return;
+    if (!["w", "a", "s", "d", "q", "e"].includes(key)) return;
     if (currentMode !== "MANUAL" || modeRequestInProgress) return;
 
     if (event.target.tagName === "INPUT") return;
@@ -143,9 +179,16 @@ document.addEventListener("keydown", event => {
 });
 
 document.addEventListener("keyup", event => {
-    const key = event.key.toLowerCase();
+    const key = ({
+        KeyW: "w",
+        KeyA: "a",
+        KeyS: "s",
+        KeyD: "d",
+        KeyQ: "q",
+        KeyE: "e"
+    })[event.code] || event.key.toLowerCase();
 
-    if (!["w", "a", "s", "d"].includes(key)) return;
+    if (!["w", "a", "s", "d", "q", "e"].includes(key)) return;
 
     keys.delete(key);
     updateDirection();
@@ -261,7 +304,31 @@ async function changeMode(mode) {
 }
 
 document.querySelectorAll(".mode-button").forEach(button => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
+        if (
+            button.dataset.mode === "STOP" &&
+            button.closest("#navigation")
+        ) {
+            // Sofort STOP anfordern und Nav2-Ziel abbrechen.
+            button.disabled = true;
+
+            try {
+                const response = await fetch("/api/emergency_stop", {
+                    method: "POST"
+                });
+
+                if (!response.ok) {
+                    throw new Error("Not-Stopp fehlgeschlagen");
+                }
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                await checkStatus();
+            }
+
+            return;
+        }
+
         changeMode(button.dataset.mode);
     });
 });
@@ -278,6 +345,14 @@ async function checkStatus() {
         const connected = data.connected === true;
 
         applyMode(data.mode, connected);
+
+        // Nav2-Status auf der Systemstatus-Seite anzeigen.
+        const systemNavigation = document.getElementById("system-navigation");
+        if (systemNavigation) {
+            systemNavigation.textContent = data.navigation_available === true
+                ? "🟢 Nav2 erreichbar"
+                : "⚪ Nav2 nicht erreichbar";
+        }
 
         connection.textContent = connected
             ? "Control Mux verbunden"
@@ -307,3 +382,109 @@ setInterval(() => {
 
 setInterval(checkStatus, 2000);
 checkStatus();
+
+// Simulation starten und beenden.
+const simulationButton = document.getElementById("start-simulation");
+const stopSimulationButton = document.getElementById("stop-simulation");
+const simulationStatus = document.getElementById("simulation-status");
+
+let simulationStarting = false;
+let simulationStopping = false;
+
+async function checkSimulation() {
+    try {
+        const response = await fetch("/api/simulation", {
+            cache: "no-store"
+        });
+
+        if (!response.ok) throw new Error("Statusabfrage fehlgeschlagen");
+
+        const data = await response.json();
+
+        simulationStatus.textContent = simulationStopping
+            ? "🟡 Wird beendet ..."
+            : data.running
+                ? "🟢 Läuft"
+                : simulationStarting
+                    ? "🟡 Startet ..."
+                    : "⚪ Gestoppt";
+
+        // Simulationsstatus auch auf der Systemstatus-Seite anzeigen.
+        const systemSimulation = document.getElementById("system-simulation");
+        if (systemSimulation) {
+            systemSimulation.textContent = simulationStatus.textContent;
+        }
+
+        if (data.running) simulationStarting = false;
+
+        simulationButton.disabled =
+            data.running || simulationStarting || simulationStopping;
+
+        stopSimulationButton.disabled =
+            !data.running || simulationStopping;
+
+    } catch {
+        simulationStatus.textContent = "🔴 Status unbekannt";
+        simulationButton.disabled = true;
+        stopSimulationButton.disabled = true;
+    }
+}
+
+simulationButton.addEventListener("click", async () => {
+    if (simulationStarting || simulationStopping) return;
+
+    simulationStarting = true;
+    simulationButton.disabled = true;
+    simulationStatus.textContent = "🟡 Startet ...";
+
+    try {
+        const response = await fetch("/api/simulation/start", {
+            method: "POST"
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.message || "Start fehlgeschlagen");
+        }
+    } catch (error) {
+        simulationStarting = false;
+        simulationStatus.textContent = error.message;
+    }
+
+    await checkSimulation();
+});
+
+stopSimulationButton.addEventListener("click", async () => {
+    if (simulationStopping) return;
+
+    if (!confirm("Gesamte Simulation mit Gazebo, Nav2 und RViz2 beenden?")) {
+        return;
+    }
+
+    simulationStopping = true;
+    simulationStarting = false;
+
+    stopSimulationButton.disabled = true;
+    simulationButton.disabled = true;
+    simulationStatus.textContent = "🟡 Wird beendet ...";
+
+    try {
+        const response = await fetch("/api/simulation/stop", {
+            method: "POST"
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || "Beenden fehlgeschlagen");
+        }
+    } catch (error) {
+        alert("Simulation konnte nicht vollständig beendet werden: " + error.message);
+    } finally {
+        simulationStopping = false;
+        await checkSimulation();
+    }
+});
+
+setInterval(checkSimulation, 3000);
+checkSimulation();

@@ -1,6 +1,6 @@
-import math
 import rclpy
 from rclpy.node import Node
+from nav_msgs.msg import Odometry
 from geometry_msgs.msg import TransformStamped
 from tf2_ros import TransformBroadcaster
 
@@ -8,30 +8,31 @@ from tf2_ros import TransformBroadcaster
 class SlamPoseBridge(Node):
     def __init__(self):
         super().__init__('slam_pose_bridge')
-        self.set_parameters([rclpy.parameter.Parameter(
-            'use_sim_time',
-            rclpy.Parameter.Type.BOOL,
-            True
-    )])
+
         self.tf_broadcaster = TransformBroadcaster(self)
-        self.get_logger().info(
-            'SLAM-Pose-Knoten gestartet. Warte auf Gazebo-Pose.'
+
+        self.create_subscription(
+            Odometry,
+            '/odom',
+            self.odom_callback,
+            10
         )
 
-    def publish_transform(self, x, y, z, qx, qy, qz, qw):
+        self.get_logger().info(
+            'Go2 Odom-TF-Bridge gestartet. Warte auf /odom.'
+        )
+
+    def odom_callback(self, msg):
         transform = TransformStamped()
-        transform.header.stamp = self.get_clock().now().to_msg()
-        transform.header.frame_id = 'odom'
-        transform.child_frame_id = 'trunk'
 
-        transform.transform.translation.x = x
-        transform.transform.translation.y = y
-        transform.transform.translation.z = z
+        transform.header = msg.header
+        transform.child_frame_id = msg.child_frame_id
 
-        transform.transform.rotation.x = qx
-        transform.transform.rotation.y = qy
-        transform.transform.rotation.z = qz
-        transform.transform.rotation.w = qw
+        transform.transform.translation.x = msg.pose.pose.position.x
+        transform.transform.translation.y = msg.pose.pose.position.y
+        transform.transform.translation.z = msg.pose.pose.position.z
+
+        transform.transform.rotation = msg.pose.pose.orientation
 
         self.tf_broadcaster.sendTransform(transform)
 
@@ -39,8 +40,11 @@ class SlamPoseBridge(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = SlamPoseBridge()
+
     try:
         rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
     finally:
         node.destroy_node()
         rclpy.shutdown()

@@ -54,6 +54,17 @@ def generate_launch_description():
     ],
     output='screen',
     )
+    odom_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        arguments=[
+            '/model/go2/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+        ],
+        remappings=[
+            ('/model/go2/odometry', '/odom'),
+        ],
+        output='screen',
+    )
     spawn_anchor = Node(
         package='ros_gz_sim',
         executable='create',
@@ -138,6 +149,7 @@ def generate_launch_description():
         robot_state_publisher,
         lidar_bridge,
         clock_bridge,
+        odom_bridge,
         spawn_anchor,
         spawn_robot_after_anchor,
         joint_state_broadcaster_spawner,

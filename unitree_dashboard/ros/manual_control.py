@@ -13,6 +13,7 @@ class ManualControl(Node):
         self.lock = threading.Lock()
 
         self.linear = 0.0
+        self.lateral = 0.0
         self.angular = 0.0
         self.last_command = 0.0
 
@@ -69,18 +70,20 @@ class ManualControl(Node):
 
         return True
 
-    def set_command(self, linear, angular):
+    def set_command(self, linear, angular, lateral=0.0):
         with self.lock:
             if (
                 self.current_mode != "MANUAL"
                 or time.monotonic() - self.last_mode_update > 1.0
             ):
                 self.linear = 0.0
+                self.lateral = 0.0
                 self.angular = 0.0
                 return False
 
-            self.linear = max(-0.15, min(0.20, float(linear)))
-            self.angular = max(-0.30, min(0.30, float(angular)))
+            self.linear = max(-0.20, min(0.30, float(linear)))
+            self.lateral = max(-0.30, min(0.30, float(lateral)))
+            self.angular = max(-0.40, min(0.40, float(angular)))
             self.last_command = time.monotonic()
 
             return True
@@ -88,6 +91,7 @@ class ManualControl(Node):
     def stop(self):
         with self.lock:
             self.linear = 0.0
+            self.lateral = 0.0
             self.angular = 0.0
             self.last_command = 0.0
 
@@ -104,13 +108,16 @@ class ManualControl(Node):
 
             if mode_valid and command_valid:
                 linear = self.linear
+                lateral = self.lateral
                 angular = self.angular
             else:
                 linear = 0.0
+                lateral = 0.0
                 angular = 0.0
 
         msg = Twist()
         msg.linear.x = linear
+        msg.linear.y = lateral
         msg.angular.z = angular
 
         self.publisher.publish(msg)

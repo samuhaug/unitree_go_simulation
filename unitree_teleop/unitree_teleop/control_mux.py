@@ -126,13 +126,16 @@ class ControlMux(Node):
         command = Twist()
 
         command.linear.x = max(
-            -0.15,
-            min(0.20, msg.linear.x)
+            -0.20,
+            min(0.30, msg.linear.x)
         )
-
-        command.angular.z = max(
+        command.linear.y = max(
             -0.30,
-            min(0.30, msg.angular.z)
+            min(0.30, msg.linear.y)
+        ) 
+        command.angular.z = max(
+            -0.40,
+            min(0.40, msg.angular.z)
         )
 
         return command

@@ -23,8 +23,40 @@
 
     <main>
         <section id="control" class="page active">
-            <h2>Manuelle Steuerung</h2>
-            <p>Steuere den Roboter mit WASD oder den Buttons.</p>
+            <div class="card">
+                <h3>🚀 Simulation starten</h3>
+                <p>Startet Gazebo, Unitree Go2, Nav2 und RViz2 gemeinsam.</p>
+
+                <button id="start-simulation">
+                    🚀 Gazebo + Nav2 + RViz2 starten
+                </button>
+
+                <button id="stop-simulation"
+                        class="stop"
+                        type="button"
+                        disabled>
+                    🛑 Simulation beenden
+                </button>
+
+                <p>
+                    Simulationsstatus:
+                    <strong id="simulation-status">Prüfe ...</strong>
+                </p>
+            </div>
+            <div class="dashboard-layout">
+                <div class="gazebo-panel card">
+                    <h3>🎥 Gazebo-Liveansicht</h3>
+                    <div id="gazebo-view">
+                        <img
+                src="/api/camera/stream"
+                alt="Gazebo Livekamera"
+                style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"
+            >
+                    </div>
+                </div>
+
+                <div class="dashboard-controls">
+                    <h2>🎮 Robotersteuerung</h2>
             <div class="card">
             <h3>🎛️ Betriebsmodus</h3>
 
@@ -56,7 +88,13 @@
                 <h3>Bewegung</h3>
 
                 <div class="controls">
-                    <button class="move" data-direction="w">W<br>▲</button>
+                    <div class="control-row">
+                        <button class="move" data-direction="q"
+                                title="Seitwärts links">Q<br>⇦</button>
+                        <button class="move" data-direction="w">W<br>▲</button>
+                        <button class="move" data-direction="e"
+                                title="Seitwärts rechts">E<br>⇨</button>
+                    </div>
 
                     <div class="control-row">
                         <button class="move" data-direction="a">A<br>◀</button>
@@ -68,7 +106,7 @@
                 </div>
 
                 <p id="movement">Aktuelle Bewegung: Stopp</p>
-                <p class="hint">Leertaste = Stopp · Taste loslassen = Stopp</p>
+                <p class="hint">W/S = Fahren · A/D = Drehen · Q/E = Seitwärts · Leertaste = Stopp</p>
             </div>
 
             <div class="card">
@@ -79,37 +117,60 @@
                     <strong id="forward-value">0.05 m/s</strong>
                 </label>
                 <input id="forward" type="range"
-                       min="0.01" max="0.20" step="0.01" value="0.05">
+                       min="0.01" max="0.30" step="0.01" value="0.05">
 
                 <label for="backward">
                     Rückwärts:
                     <strong id="backward-value">0.10 m/s</strong>
                 </label>
                 <input id="backward" type="range"
-                       min="0.01" max="0.15" step="0.01" value="0.10">
+                       min="0.01" max="0.20" step="0.01" value="0.10">
 
                 <label for="turn">
                     Drehung:
                     <strong id="turn-value">0.20 rad/s</strong>
                 </label>
                 <input id="turn" type="range"
-                       min="0.02" max="0.30" step="0.02" value="0.20">
+                       min="0.02" max="0.40" step="0.02" value="0.20">
+
+                <label for="sideways">
+                    Seitwärts (Q/E):
+                    <strong id="sideways-value">0.15 m/s</strong>
+                </label>
+                <input id="sideways" type="range"
+                       min="0.02" max="0.30" step="0.01" value="0.15">
+            </div>
+                </div>
             </div>
         </section>
 
         <section id="navigation" class="page">
             <h2>Kartierung & Navigation</h2>
 
+
+
             <div class="card">
                 <h3>🗺️ LiDAR-Karte</h3>
-                <p>Noch nicht verfügbar.</p>
-                <p>Hier integrieren wir später die Karte von Student 2.</p>
+                <p>Beim Öffnen in RViz2 sichtbar.</p>
+
             </div>
 
             <div class="card">
                 <h3>📍 Autonome Navigation</h3>
-                <p>Noch nicht verfügbar.</p>
-                <p>Hier integrieren wir später die Navigation von Student 3.</p>
+
+                <p>Navigationsziele in RViz2 über „2D Goal Pose“ mit der linken Maustaste setzen.</p>
+                <p>Für die autonome Fahrt den Betriebsmodus AUTO aktivieren.</p>
+
+                <div class="mode-controls">
+                    <button class="mode-button" data-mode="AUTO" disabled>
+                        🤖 AUTO aktivieren
+                    </button>
+
+                    <button class="mode-button" data-mode="STOP" disabled>
+                        🛑 STOPP
+                    </button>
+                </div>
+                <p>Mit STOPP werden Bewegungsbefehle blockiert.</p>
             </div>
         </section>
 
@@ -123,8 +184,8 @@
                     <span id="system-mode">Nicht verbunden</span>
                 </p>
                 <p><strong>Bewegungsbefehl:</strong> <span id="command-status">Stopp</span></p>
-                <p><strong>Simulation:</strong> Noch keine Statusüberwachung</p>
-                <p><strong>Navigation:</strong> Noch nicht integriert</p>
+                <p><strong>Simulation:</strong> <span id="system-simulation">Prüfe ...</span></p>
+                <p><strong>Navigation:</strong> <span id="system-navigation">Prüfe ...</span></p>
             </div>
         </section>
     </main>
