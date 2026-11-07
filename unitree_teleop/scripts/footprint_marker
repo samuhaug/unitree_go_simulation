@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+
+from unitree_teleop.footprint_marker import main
+
+if __name__ == '__main__':
+    main()

@@ -57,11 +57,18 @@ def generate_launch_description():
         output='screen',
     )
 
+    footprint_marker = Node(
+        package='unitree_teleop',
+        executable='footprint_marker',
+        name='go2_footprint_marker',
+        output='screen',
+    )
+
     return LaunchDescription([
         simulation,
         camera_bridge,
         TimerAction(
             period=15.0,
-            actions=[navigation, rviz],
+            actions=[navigation, rviz, footprint_marker],
         ),
     ])
