@@ -23,6 +23,8 @@ def generate_launch_description():
         resource_path += os.pathsep + existing_resource_path
 
     gazebo_env['GZ_SIM_RESOURCE_PATH'] = resource_path
+    gazebo_env['GALLIUM_DRIVER'] = 'd3d12'
+    gazebo_env['MESA_D3D12_DEFAULT_ADAPTER_NAME'] = 'NVIDIA'
 
     gazebo = ExecuteProcess(
         cmd=['gz', 'sim', '-r', world_file],
