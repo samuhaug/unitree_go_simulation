@@ -120,10 +120,11 @@ def generate_launch_description():
 
     detach_command = ExecuteProcess(
         cmd=[
-            'gz', 'topic',
-            '-t', '/go2/detach',
-            '-m', 'gz.msgs.Empty',
-            '-p', 'unused: true',
+            'bash', '-c',
+            'for i in 1 2 3 4 5; do '
+            'gz topic -t /go2/detach -m gz.msgs.Empty -p "unused: true"; '
+            'sleep 1; '
+            'done',
         ],
         output='screen',
     )
