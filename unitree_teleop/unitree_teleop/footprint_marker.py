@@ -21,7 +21,7 @@ class FootprintMarker(Node):
             10
         )
 
-        self.goal_tolerance = 0.25
+        self.goal_tolerance = 0.20
         self.goal_publisher = self.create_publisher(
             MarkerArray,
             '/go2/goal_tolerance_marker_array',

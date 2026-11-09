@@ -438,7 +438,7 @@ Visualization Manager:
       Value: true
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
-      Name: Goal Tolerance 0.25 m
+      Name: Goal Tolerance 0.20 m
       Namespaces:
         {}
       Topic:
