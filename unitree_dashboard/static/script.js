@@ -391,6 +391,46 @@ const simulationStatus = document.getElementById("simulation-status");
 let simulationStarting = false;
 let simulationStopping = false;
 
+// Automatische Gazebo-Livebild-Steuerung
+const gazeboCamera = document.getElementById("gazebo-camera");
+const cameraPlaceholder = document.getElementById("camera-placeholder");
+
+let cameraStreamActive = false;
+
+function updateCameraStream(running) {
+    if (!gazeboCamera || !cameraPlaceholder) return;
+
+    if (running && !simulationStopping) {
+        if (!cameraStreamActive) {
+            cameraStreamActive = true;
+
+            cameraPlaceholder.textContent = "🟡 Warte auf Kamerabild ...";
+            cameraPlaceholder.style.display = "flex";
+            gazeboCamera.style.display = "none";
+
+            gazeboCamera.src = "/api/camera/stream";
+        }
+    } else {
+        if (cameraStreamActive) {
+            cameraStreamActive = false;
+            gazeboCamera.removeAttribute("src");
+            gazeboCamera.style.display = "none";
+        }
+
+        cameraPlaceholder.style.display = "flex";
+        cameraPlaceholder.textContent = simulationStarting
+            ? "🟡 Simulation startet ..."
+            : "⚪ Simulation nicht gestartet";
+    }
+}
+
+gazeboCamera.addEventListener("load", () => {
+    if (cameraStreamActive) {
+        gazeboCamera.style.display = "block";
+        cameraPlaceholder.style.display = "none";
+    }
+});
+
 async function checkSimulation() {
     try {
         const response = await fetch("/api/simulation", {
@@ -400,6 +440,8 @@ async function checkSimulation() {
         if (!response.ok) throw new Error("Statusabfrage fehlgeschlagen");
 
         const data = await response.json();
+
+        updateCameraStream(data.running);
 
         simulationStatus.textContent = simulationStopping
             ? "🟡 Wird beendet ..."
