@@ -39,7 +39,7 @@ def generate_launch_description():
                 {"use_sim_time": False},
                 str(config / "joints/joints.yaml"),
                 str(config / "links/links.yaml"),
-                str(config / "gait/gait.yaml"),
+                str(Path("/home/anwender/unitree_go_simulation/champ_config/gait.yaml")),
             ],
             remappings=[
                 ("/cmd_vel/smooth", "/champ/cmd_vel"),

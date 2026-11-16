@@ -7,7 +7,7 @@ from rclpy.node import Node
 
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
-from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Float64MultiArray, String
 from trajectory_msgs.msg import JointTrajectory
 
 JOINT_MAPPING = {
@@ -116,6 +116,18 @@ class ManualAdapter(Node):
             10,
         )
 
+        self.control_mode = "STOP"
+        self.create_subscription(
+            String,
+            "/control_mode",
+            self.control_mode_callback,
+            10,
+        )
+
+        self.declare_parameter("enable_auto_reverse_floor", True)
+        self.declare_parameter("auto_reverse_min_speed", 0.10)
+        self.declare_parameter("auto_reverse_threshold", 0.01)
+
         self.current = START.copy()
         self.stand = None
         self.target = START.copy()
@@ -137,6 +149,12 @@ class ManualAdapter(Node):
             "Manueller CHAMP-Adapter gestartet. "
             "Warte auf Standposition."
         )
+
+    def control_mode_callback(self, msg):
+        mode = msg.data.strip().upper()
+
+        if mode in ("STOP", "MANUAL", "AUTO"):
+            self.control_mode = mode
 
     def odom_callback(self, msg):
         measured_x = msg.twist.twist.linear.x
@@ -268,6 +286,33 @@ class ManualAdapter(Node):
                 velocity.linear.x = self.requested_velocity.linear.x
                 velocity.linear.y = self.requested_velocity.linear.y
                 velocity.angular.z = self.requested_velocity.angular.z
+
+        # Kleine automatische Rueckwaertsbefehle auf eine fuer
+        # CHAMP praktisch umsetzbare Mindestgeschwindigkeit anheben.
+        if (
+            self.control_mode == "AUTO"
+            and bool(
+                self.get_parameter(
+                    "enable_auto_reverse_floor"
+                ).value
+            )
+        ):
+            minimum = abs(float(
+                self.get_parameter(
+                    "auto_reverse_min_speed"
+                ).value
+            ))
+            threshold = abs(float(
+                self.get_parameter(
+                    "auto_reverse_threshold"
+                ).value
+            ))
+
+            if (
+                minimum > threshold
+                and -minimum < velocity.linear.x < -threshold
+            ):
+                velocity.linear.x = -minimum
 
         # Adaptive Rueckwaertskorrektur nur beim Seitwaertslaufen.
         sideways = (

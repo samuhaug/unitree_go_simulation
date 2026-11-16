@@ -41,6 +41,8 @@ install(PROGRAMS
   scripts/go2_motion_test
   scripts/control_mux
   scripts/odom_tf_bridge
+  scripts/footprint_marker
+  scripts/test_obstacle
   DESTINATION lib/${PROJECT_NAME}
 )
 
