@@ -10,7 +10,6 @@ from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64MultiArray
 from trajectory_msgs.msg import JointTrajectory
 
-
 JOINT_MAPPING = {
     "lf_hip_joint": "FL_hip_joint",
     "lf_upper_leg_joint": "FL_upper_leg_joint",
@@ -56,6 +55,8 @@ DRIFT_INITIAL = -0.03
 SIDEWAYS_SPEED_GAIN = 0.08
 SIDEWAYS_SPEED_MAX_CORRECTION = 0.05
 
+SIDEWAYS_YAW_GAIN = 0.35
+SIDEWAYS_YAW_MAX = 0.20
 
 TURN_DRIFT_GAIN = 0.35
 TURN_DRIFT_MAX = 0.08
@@ -64,8 +65,6 @@ TURN_DRIFT_INITIAL = -0.02
 TURN_Y_GAIN = 0.40
 TURN_Y_MAX = 0.05
 TURN_Y_INITIAL = 0.0
-
-
 
 class ManualAdapter(Node):
 
@@ -100,10 +99,12 @@ class ManualAdapter(Node):
 
         self.odom_x_filtered = 0.0
         self.odom_y_filtered = 0.0
+        self.odom_z_filtered = 0.0
         self.odom_received = False
         self.drift_correction = DRIFT_INITIAL
         self.drift_active = False
         self.sideways_speed_correction = 0.0
+        self.sideways_yaw_correction = 0.0
         self.turn_drift_correction = TURN_DRIFT_INITIAL
         self.turn_drift_active = False
         self.turn_y_correction = TURN_Y_INITIAL
@@ -140,13 +141,15 @@ class ManualAdapter(Node):
     def odom_callback(self, msg):
         measured_x = msg.twist.twist.linear.x
         measured_y = msg.twist.twist.linear.y
+        measured_z = msg.twist.twist.angular.z
 
-        if not (math.isfinite(measured_x) and math.isfinite(measured_y)):
+        if not (math.isfinite(measured_x) and math.isfinite(measured_y) and math.isfinite(measured_z)):
             return
 
         if not self.odom_received:
             self.odom_x_filtered = measured_x
             self.odom_y_filtered = measured_y
+            self.odom_z_filtered = measured_z
             self.odom_received = True
         else:
             self.odom_x_filtered = (
@@ -156,6 +159,10 @@ class ManualAdapter(Node):
             self.odom_y_filtered = (
                 (1.0 - DRIFT_ALPHA) * self.odom_y_filtered
                 + DRIFT_ALPHA * measured_y
+            )
+            self.odom_z_filtered = (
+                (1.0 - DRIFT_ALPHA) * self.odom_z_filtered
+                + DRIFT_ALPHA * measured_z
             )
 
     def velocity_callback(self, msg):
@@ -302,10 +309,21 @@ class ManualAdapter(Node):
                 ),
             )
             velocity.linear.y += self.sideways_speed_correction
+            # Ungewollte Z-Drehung beim Seitwaertslaufen ausgleichen.
+            if self.odom_received:
+                self.sideways_yaw_correction -= (
+                    SIDEWAYS_YAW_GAIN * self.odom_z_filtered / RATE
+                )
+            self.sideways_yaw_correction = max(
+                -SIDEWAYS_YAW_MAX,
+                min(SIDEWAYS_YAW_MAX, self.sideways_yaw_correction),
+            )
+            velocity.angular.z = self.sideways_yaw_correction
         else:
             self.drift_active = False
             self.drift_correction = DRIFT_INITIAL
             self.sideways_speed_correction = 0.0
+            self.sideways_yaw_correction = 0.0
 
         # Adaptive Vorwaertsdriftkorrektur bei reiner Drehung (A/D).
         turning = (
@@ -435,7 +453,6 @@ class ManualAdapter(Node):
         message.data = self.current.copy()
         self.joint_pub.publish(message)
 
-
 def main():
     rclpy.init()
     node = ManualAdapter()
@@ -449,7 +466,6 @@ def main():
 
         if rclpy.ok():
             rclpy.shutdown()
-
 
 if __name__ == "__main__":
     main()
