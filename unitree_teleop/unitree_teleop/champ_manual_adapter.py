@@ -56,7 +56,7 @@ SIDEWAYS_SPEED_GAIN = 0.08
 SIDEWAYS_SPEED_MAX_CORRECTION = 0.05
 
 SIDEWAYS_YAW_GAIN = 0.35
-SIDEWAYS_YAW_MAX = 0.20
+SIDEWAYS_YAW_MAX = 0.0
 
 TURN_DRIFT_GAIN = 0.35
 TURN_DRIFT_MAX = 0.08
@@ -105,6 +105,8 @@ class ManualAdapter(Node):
         self.drift_active = False
         self.sideways_speed_correction = 0.0
         self.sideways_yaw_correction = 0.0
+        self.current_yaw = None
+        self.sideways_target_yaw = None
         self.turn_drift_correction = TURN_DRIFT_INITIAL
         self.turn_drift_active = False
         self.turn_y_correction = TURN_Y_INITIAL
@@ -157,6 +159,15 @@ class ManualAdapter(Node):
             self.control_mode = mode
 
     def odom_callback(self, msg):
+        q = msg.pose.pose.orientation
+        if all(math.isfinite(v) for v in (q.x, q.y, q.z, q.w)):
+            norm = math.sqrt(q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w)
+            if norm > 1e-6:
+                x, y, z, w = q.x/norm, q.y/norm, q.z/norm, q.w/norm
+                self.current_yaw = math.atan2(
+                    2.0 * (w*z + x*y),
+                    1.0 - 2.0 * (y*y + z*z)
+                )
         measured_x = msg.twist.twist.linear.x
         measured_y = msg.twist.twist.linear.y
         measured_z = msg.twist.twist.angular.z
@@ -322,6 +333,8 @@ class ManualAdapter(Node):
         )
 
         if sideways:
+            if self.sideways_target_yaw is None and self.current_yaw is not None:
+                self.sideways_target_yaw = self.current_yaw
             if not self.drift_active:
                 self.drift_correction = DRIFT_INITIAL
                 self.drift_active = True
@@ -354,17 +367,24 @@ class ManualAdapter(Node):
                 ),
             )
             velocity.linear.y += self.sideways_speed_correction
-            # Ungewollte Z-Drehung beim Seitwaertslaufen ausgleichen.
-            if self.odom_received:
-                self.sideways_yaw_correction -= (
-                    SIDEWAYS_YAW_GAIN * self.odom_z_filtered / RATE
+            # Winkelbasierte PD-Drehkorrektur fuer Q/E.
+            if self.sideways_target_yaw is not None and self.current_yaw is not None:
+                error = math.atan2(
+                    math.sin(self.sideways_target_yaw - self.current_yaw),
+                    math.cos(self.sideways_target_yaw - self.current_yaw),
                 )
+                self.sideways_yaw_correction = (
+                    0.8 * error - SIDEWAYS_YAW_GAIN * self.odom_z_filtered
+                )
+            else:
+                self.sideways_yaw_correction = 0.0
             self.sideways_yaw_correction = max(
                 -SIDEWAYS_YAW_MAX,
                 min(SIDEWAYS_YAW_MAX, self.sideways_yaw_correction),
             )
             velocity.angular.z = self.sideways_yaw_correction
         else:
+            self.sideways_target_yaw = None
             self.drift_active = False
             self.drift_correction = DRIFT_INITIAL
             self.sideways_speed_correction = 0.0
