@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 import threading
 import time
@@ -190,6 +191,101 @@ def simulation_stop():
         "message": message,
         "running": is_running()
     }), 200 if success else 409
+
+
+
+# Gazebo-Testhindernis von Student 3
+_obstacle_lock = threading.Lock()
+
+
+def run_obstacle_command(action):
+    if not is_running():
+        return jsonify({
+            "success": False,
+            "message": "Bitte zuerst die Simulation starten."
+        }), 409
+
+    if not _obstacle_lock.acquire(blocking=False):
+        return jsonify({
+            "success": False,
+            "message": "Eine Hindernisaktion läuft bereits."
+        }), 409
+
+    try:
+        command = (
+            'source /opt/ros/jazzy/setup.bash && '
+            'source "$HOME/ros2_integration_ws/install/setup.bash" && '
+            'ros2 run unitree_teleop test_obstacle ' + action
+        )
+
+        result = subprocess.run(
+            ["bash", "-c", command],
+            capture_output=True,
+            text=True,
+            timeout=45,
+            check=False
+        )
+
+        output = (result.stdout + "\\n" + result.stderr).strip()
+
+        if result.returncode == 0:
+            message = (
+                "Hindernis erfolgreich platziert."
+                if action == "spawn"
+                else "Hindernisaktion abgeschlossen."
+            )
+
+            if action == "clear" and "WARNUNG" in output:
+                message = "Hindernis entfernt, aber Costmap-Warnung beachten."
+
+            return jsonify({
+                "success": True,
+                "message": message,
+                "details": output
+            })
+
+        if action == "spawn" and result.returncode == 3:
+            if "existiert bereits" in output:
+                message = "Ein Hindernis ist bereits vorhanden."
+            else:
+                message = "Gazebo konnte nicht abgefragt werden."
+
+            return jsonify({
+                "success": False,
+                "message": message,
+                "details": output
+            }), 409
+
+        return jsonify({
+            "success": False,
+            "message": "Hindernisaktion fehlgeschlagen.",
+            "details": output
+        }), 500
+
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            "success": False,
+            "message": "Zeitüberschreitung bei der Hindernisaktion."
+        }), 504
+
+    except OSError as error:
+        return jsonify({
+            "success": False,
+            "message": f"ROS-2-Befehl konnte nicht gestartet werden: {error}"
+        }), 500
+
+    finally:
+        _obstacle_lock.release()
+
+
+@app.route("/api/obstacle/spawn", methods=["POST"])
+def obstacle_spawn():
+    return run_obstacle_command("spawn")
+
+
+@app.route("/api/obstacle/clear", methods=["POST"])
+def obstacle_clear():
+    return run_obstacle_command("clear")
 
 
 app.config['TEMPLATES_AUTO_RELOAD'] = True

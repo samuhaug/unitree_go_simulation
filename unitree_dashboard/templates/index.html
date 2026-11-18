@@ -144,6 +144,29 @@
                 <input id="sideways" type="range"
                        min="0.02" max="0.30" step="0.01" value="0.15">
             </div>
+
+            <div class="card">
+                <h3>🧱 Hindernistest – Gazebo</h3>
+                <p>
+                    Testhindernis platzieren oder entfernen,
+                    um die Hindernisvermeidung zu demonstrieren.
+                </p>
+
+                <button id="spawn-obstacle" type="button" disabled>
+                    🧱 Hindernis platzieren
+                </button>
+
+                <button id="clear-obstacle" type="button" disabled>
+                    🗑️ Hindernis entfernen
+                </button>
+
+                <p>
+                    Status:
+                    <strong id="obstacle-status" role="status">
+                        Simulation nicht gestartet
+                    </strong>
+                </p>
+            </div>
                 </div>
             </div>
         </section>

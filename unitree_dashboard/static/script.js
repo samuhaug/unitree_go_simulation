@@ -431,6 +431,77 @@ gazeboCamera.addEventListener("load", () => {
     }
 });
 
+
+// Gazebo-Testhindernis
+const spawnObstacleButton = document.getElementById("spawn-obstacle");
+const clearObstacleButton = document.getElementById("clear-obstacle");
+const obstacleStatus = document.getElementById("obstacle-status");
+
+let obstacleActionRunning = false;
+let obstacleSimulationRunning = false;
+
+function updateObstacleButtons() {
+    const enabled =
+        obstacleSimulationRunning &&
+        !simulationStarting &&
+        !simulationStopping &&
+        !obstacleActionRunning;
+
+    if (spawnObstacleButton) {
+        spawnObstacleButton.disabled = !enabled;
+    }
+
+    if (clearObstacleButton) {
+        clearObstacleButton.disabled = !enabled;
+    }
+}
+
+async function runObstacleAction(action) {
+    if (obstacleActionRunning || !obstacleSimulationRunning ||
+        simulationStarting || simulationStopping) {
+        return;
+    }
+
+    obstacleActionRunning = true;
+    updateObstacleButtons();
+
+    obstacleStatus.textContent = action === "spawn"
+        ? "🟡 Hindernis wird platziert ..."
+        : "🟡 Hindernis wird entfernt ...";
+
+    try {
+        const response = await fetch(`/api/obstacle/${action}`, {
+            method: "POST"
+        });
+
+        const data = await response.json();
+
+        obstacleStatus.textContent =
+            `${data.success ? "🟢" : "🔴"} ${data.message || "Unbekannte Antwort"}`;
+
+        if (data.details) {
+            console.log("Hindernistest:", data.details);
+        }
+    } catch (error) {
+        obstacleStatus.textContent =
+            "🔴 Verbindung zum Dashboard fehlgeschlagen.";
+        console.error("Hindernistest:", error);
+    } finally {
+        obstacleActionRunning = false;
+        updateObstacleButtons();
+    }
+}
+
+if (spawnObstacleButton && clearObstacleButton && obstacleStatus) {
+    spawnObstacleButton.addEventListener("click", () => {
+        runObstacleAction("spawn");
+    });
+
+    clearObstacleButton.addEventListener("click", () => {
+        runObstacleAction("clear");
+    });
+}
+
 async function checkSimulation() {
     try {
         const response = await fetch("/api/simulation", {
@@ -442,6 +513,15 @@ async function checkSimulation() {
         const data = await response.json();
 
         updateCameraStream(data.running);
+        obstacleSimulationRunning = Boolean(data.running);
+        updateObstacleButtons();
+
+        if (!data.running && !obstacleActionRunning) {
+            obstacleStatus.textContent = simulationStarting
+                ? "🟡 Simulation startet ..."
+                : "⚪ Simulation nicht gestartet";
+        }
+
 
         simulationStatus.textContent = simulationStopping
             ? "🟡 Wird beendet ..."
