@@ -31,6 +31,8 @@ Eine integrierte Simulations- und Steuerungsumgebung für den Quadruped-Roboter 
 - Gazebo-Kamerabild als MJPEG-Livestream im Browser.
 - Automatische Aktivierung/Deaktivierung des Livebilds anhand des Simulationsstatus.
 - Anzeige von Simulations- und Systemstatus.
+- Testhindernisse direkt im Dashboard platzieren und entfernen.
+- Automatische Aktivierung der Hindernis-Buttons bei laufender Simulation.
 
 ## Technologien
 
@@ -55,6 +57,8 @@ flowchart TD
     API --> MAN[Manuelle ROS-2-Steuerung]
     API --> CAM[ROS-2-Kameranode]
     API --> NAV[Navigation / Status]
+    API --> OBS[Hindernistest / test_obstacle.py]
+    OBS --> GZ
     SIM --> LAUNCH[go2_full.launch.py]
     LAUNCH --> GZ[Gazebo + Go2-Modell]
     LAUNCH --> CHAMP[CHAMP / Steuerung]
@@ -203,6 +207,44 @@ Der Kamerastream wird über `GET /api/camera/stream` als MJPEG bereitgestellt. D
 
 Die Statusabfrage erfolgt derzeit alle drei Sekunden. Der Simulationsstatus basiert auf dem gestarteten ROS-2-Launchprozess, **nicht** auf einer unabhängigen Prüfung des Gazebo-Fensters. Das reine Schließen des Gazebo-Fensters kann deshalb anders wirken als das Beenden der vollständigen Simulationssitzung.
 
+### Hindernistest in Gazebo
+
+Im Dashboard befindet sich im Reiter **Steuerung** unterhalb der
+Geschwindigkeitseinstellungen die Karte **„Hindernistest – Gazebo“**.
+
+Über zwei Buttons lässt sich ein Testhindernis in der Gazebo-Welt
+`go2_world` verwalten:
+
+1. **Simulation starten:** Gazebo über das Dashboard starten und warten,
+   bis die Simulation läuft.
+2. **Hindernis platzieren:** Auf **„🧱 Hindernis platzieren“** klicken.
+   Ein Testhindernis wird in der Simulationswelt erzeugt.
+3. **Hindernis entfernen:** Auf **„🗑️ Hindernis entfernen“** klicken.
+   Das Testhindernis wird aus der Welt entfernt.
+
+Die Buttons sind bei gestoppter Simulation deaktiviert. Während eine
+Hindernisaktion ausgeführt wird, werden weitere Klicks vorübergehend
+gesperrt. Das Dashboard zeigt den Status der Aktion an.
+
+**Technische Umsetzung:**
+
+- Flask-Endpunkte: `POST /api/obstacle/spawn` und
+  `POST /api/obstacle/clear`
+- Backend: `unitree_dashboard/app.py`
+- Browsersteuerung: `unitree_dashboard/static/script.js`
+- ROS-2-Programm: `unitree_teleop/unitree_teleop/test_obstacle.py`
+- Aufruf: `ros2 run unitree_teleop test_obstacle spawn` beziehungsweise
+  `ros2 run unitree_teleop test_obstacle clear`
+- Gazebo-Welt: `go2_world`
+- Hindernisname: `nav_demo_barrier`
+
+Beim Entfernen versucht das ROS-2-Programm zusätzlich, die lokalen und
+globalen Nav2-Costmaps zu leeren. Falls das nicht gelingt, können
+Warnungen auftreten.
+
+Die Hindernissteuerung dient zum Testen und Demonstrieren der
+Hindernisvermeidung innerhalb der Simulation.
+
 ### Systemstatus
 
 Der Systemstatus stellt Informationen zum Betrieb der Simulation bereit. Die Oberfläche befindet sich in `unitree_dashboard/templates/index.html`, das Verhalten in `unitree_dashboard/static/script.js`.
@@ -248,11 +290,13 @@ Die folgenden Phasen sind aus dem verfügbaren Projektverlauf und der aktuellen 
 | 7 | Zentraler Start/Stopp der vollständigen Simulationssitzung. |
 | 8 | Einbindung der Gazebo-Kamera als MJPEG-Livebild. |
 | 9 | Automatisches Starten/Stoppen des Livebilds anhand des Simulationsstatus. |
+| 10 | Integration der Gazebo-Hindernissteuerung in das Dashboard mit Platzieren, Entfernen und Statusanzeige. |
 
 ## Bekannte Einschränkungen
 
 - Die Simulationsstatus-Erkennung überwacht den Launchprozess und nicht separat die Gazebo-GUI.
 - Der Kamerastream ist an die Verfügbarkeit von ROS-Kamerabildern gebunden.
+- Das Platzieren und Entfernen von Hindernissen kann einige Sekunden dauern, da dafür separate ROS-2-Prozesse gestartet werden.
 - Die Installationsschritte sind noch nicht vollständig automatisiert oder auf einem frischen System verifiziert.
 - Die ältere CHAMP-Anleitung und die aktuelle Dashboard-Konfiguration verwenden teilweise unterschiedliche Workspace-Pfade.
 - Die Paketmetadaten enthalten noch `TODO`-Angaben, insbesondere bei Lizenz und Beschreibung.
