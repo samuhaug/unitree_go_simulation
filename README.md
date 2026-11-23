@@ -1,8 +1,14 @@
 # Unitree Go2 – ROS 2 / Gazebo Simulation & Dashboard
 
-Eine integrierte Simulations- und Steuerungsumgebung für den Quadruped-Roboter **Unitree Go2**. Das Projekt verbindet eine Gazebo-Simulation mit **ROS 2 Jazzy**, **CHAMP**, Navigationskomponenten und einem lokalen **Flask-Web-Dashboard**.
+Dieses Projekt entwickelt eine integrierte Simulations- und Steuerungsumgebung für den vierbeinigen Roboter **Unitree Go2**. Ziel ist es, die Bewegungssteuerung, Navigation und Sensorverarbeitung in einer virtuellen Umgebung zu erproben und über eine zentrale Benutzeroberfläche zugänglich zu machen.
 
-> **Projektstatus:** Aktiver Entwicklungsstand. Die Dokumentation beschreibt die bisher bestätigten Komponenten. Einzelne Start- und Installationsschritte hängen von externen CHAMP-Paketen und lokalen Workspaces ab.
+Die technische Grundlage bilden **ROS 2 Jazzy**, **Gazebo Harmonic** und **CHAMP**. Ergänzend werden **Nav2** zur Navigation und **RViz2** zur Visualisierung eingesetzt.
+
+Ein eigens entwickeltes **Flask-Web-Dashboard** ermöglicht die manuelle Robotersteuerung, das Starten und Beenden der Simulation, die Anzeige des Kamerabildes sowie das Platzieren und Entfernen von Testhindernissen.
+
+Der Schwerpunkt liegt auf der Integration der Softwarekomponenten, der Entwicklung eigener Steuerungsfunktionen und der schrittweisen Verbesserung des Bewegungsverhaltens.
+
+> **Projektstatus:** Das Projekt ist abgeschlossen. Die entwickelte Simulationsumgebung verbindet Gazebo, ROS 2, CHAMP, Navigation und das Web-Dashboard zu einem gemeinsamen System.
 
 ## Inhaltsverzeichnis
 
@@ -16,8 +22,7 @@ Eine integrierte Simulations- und Steuerungsumgebung für den Quadruped-Roboter 
 - [Bewegungssteuerung und CHAMP](#bewegungssteuerung-und-champ)
 - [Navigation und Karten](#navigation-und-karten)
 - [Entwicklungsverlauf](#entwicklungsverlauf)
-- [Bekannte Einschränkungen](#bekannte-einschränkungen)
-- [Weiterentwicklung](#weiterentwicklung)
+- [Ergebnisse der Optimierung der Seitwärtsbewegung](#ergebnisse-der-optimierung-der-seitwärtsbewegung)
 - [Lizenz und Hinweise](#lizenz-und-hinweise)
 
 ## Funktionsumfang
@@ -50,26 +55,38 @@ Eine integrierte Simulations- und Steuerungsumgebung für den Quadruped-Roboter 
 
 ## Architektur
 
+Das System verbindet die browserbasierte Benutzeroberfläche mit einem Flask-Backend und mehreren ROS-2-Komponenten. Gazebo simuliert den Roboter und seine Umgebung; CHAMP ist für die Gangsteuerung zuständig. Nav2 und RViz2 ergänzen Navigation und Visualisierung.
+
 ```mermaid
 flowchart TD
-    UI[Web-Dashboard / Browser] --> API[Flask-API]
-    API --> SIM[Simulationsverwaltung]
-    API --> MAN[Manuelle ROS-2-Steuerung]
-    API --> CAM[ROS-2-Kameranode]
-    API --> NAV[Navigation / Status]
-    API --> OBS[Hindernistest / test_obstacle.py]
+    UI["Web-Dashboard"] --> API["Flask-Backend"]
+    API --> SIM["Simulationsverwaltung"]
+    SIM --> LAUNCH["go2_full.launch.py"]
+    LAUNCH --> GZ["Gazebo / Unitree Go2"]
+    LAUNCH --> NAV["Nav2 und RViz2"]
+    API --> MAN["manual_control.py"]
+    MAN --> T1["/cmd_vel_manual"]
+    T1 --> MUX["control_mux.py"]
+    SAFE["/cmd_vel_safe"] --> MUX
+    MUX --> T2["/cmd_vel"]
+    T2 --> ADAPTER["champ_manual_adapter.py"]
+    ADAPTER --> T3["/champ/cmd_vel"]
+    T3 --> CHAMP["CHAMP-Controller"]
+    CHAMP --> GZ
+    API --> OBS["Hindernistest / test_obstacle.py"]
     OBS --> GZ
-    SIM --> LAUNCH[go2_full.launch.py]
-    LAUNCH --> GZ[Gazebo + Go2-Modell]
-    LAUNCH --> CHAMP[CHAMP / Steuerung]
-    LAUNCH --> NAV2[Nav2 / RViz2]
-    GZ -->|ROS-Kamerabilder| CAM
-    CAM -->|MJPEG /api/camera/stream| UI
-    MAN --> CHAMP
-    NAV --> NAV2
+    GZ --> CAM["ROS-2-Kamerabilder"]
+    CAM --> API
+    API -->|"MJPEG-Livestream"| UI
 ```
 
-Das Diagramm stellt die logische Integration vereinfacht dar; konkrete ROS-Topics und die genaue Launch-Reihenfolge sind im Quellcode definiert.
+### Verarbeitung der Steuerbefehle
+
+Die manuelle Steuerung übermittelt Geschwindigkeitsbefehle vom Dashboard an `manual_control.py`. Diese Komponente veröffentlicht auf `/cmd_vel_manual`. Der `control_mux.py` koordiniert Steuerquellen, darunter `/cmd_vel_manual` und `/cmd_vel_safe`, und gibt die ausgewählten Befehle über `/cmd_vel` weiter.
+
+Der `champ_manual_adapter.py` verarbeitet diese Vorgaben und veröffentlicht die für CHAMP bestimmten Befehle auf `/champ/cmd_vel`. Der CHAMP-Controller setzt sie in die Bewegungssteuerung des simulierten Roboters um.
+
+Die Darstellung beschreibt den logischen Datenfluss. Die konkrete Aktivierung der Komponenten und ihre Startreihenfolge ergeben sich aus den Launch-Dateien.
 
 ## Repository-Struktur
 
@@ -127,7 +144,7 @@ Bestätigte Entwicklungsumgebung:
 - Python-Pakete `flask`, `psutil`, `opencv-python` bzw. systemseitiges `cv2`, `numpy`
 - ROS-2-Nachrichtenpakete wie `geometry_msgs`, `sensor_msgs`, `std_msgs`, `nav2_msgs`, `trajectory_msgs`, `tf2_ros`
 
-Die genaue Liste aller Systempakete ist noch nicht als reproduzierbares Installationsskript im Repository hinterlegt. Die `package.xml`-Dateien dokumentieren nur einen Teil der zur Laufzeit benötigten Abhängigkeiten.
+Die Einrichtung setzt eine bereits installierte ROS-2-, Gazebo- und CHAMP-Umgebung voraus. Die nachfolgenden Befehle beziehen sich auf die verwendete Workspace-Struktur.
 
 ### Verwendete Workspaces
 
@@ -251,29 +268,45 @@ Der Systemstatus stellt Informationen zum Betrieb der Simulation bereit. Die Obe
 
 ## Bewegungssteuerung und CHAMP
 
-Die Steuerungsintegration wurde schrittweise aufgebaut und umfasst unter anderem:
+Die Bewegungssteuerung wurde schrittweise entwickelt und angepasst. Für die manuelle Bedienung im Dashboard stehen folgende Richtungen zur Verfügung:
 
-- CHAMP-Launchdatei: `unitree_teleop/launch/champ.launch.py`
-- Adapter: `unitree_teleop/unitree_teleop/champ_manual_adapter.py`
-- Steuerquellen-Koordination: `unitree_teleop/unitree_teleop/control_mux.py`
-- Gangparameter: `champ_config/gait.yaml`
-- Manuelle Dashboard-Steuerung: `unitree_dashboard/ros/manual_control.py`
+| Taste | Funktion |
+| --- | --- |
+| `W` | Vorwärtsbewegung |
+| `S` | Rückwärtsbewegung |
+| `A` | Drehung nach links |
+| `D` | Drehung nach rechts |
+| `Q` | Seitwärtsbewegung nach links |
+| `E` | Seitwärtsbewegung nach rechts |
 
-Im Entwicklungsverlauf wurden Vorwärts-/Rückwärtsbewegung, Drehung, seitliche Bewegung und das Bewegungsverhalten (u. a. Drift und Kurvenverhalten) angepasst. Konkrete Geschwindigkeitswerte sollten aus der jeweils aktuellen Konfiguration gelesen werden, da ältere Notizen veraltete Werte enthalten können.
+### Anpassung der Drehbewegung mit A und D
 
-Für den früheren WASD-basierten Aufbau siehe [`unitree_teleop/README_CHAMP.md`](unitree_teleop/README_CHAMP.md). Diese Anleitung ist als historische Zusatzdokumentation zu verstehen.
+Die Tasten **A** und **D** steuern die Drehung des Roboters um seine Hochachse: A nach links, D nach rechts. Im Zuge der Abstimmung der manuellen Bewegungssteuerung wurden die Drehbewegungen gemeinsam mit den übrigen Bewegungsrichtungen überprüft und das Kurven- beziehungsweise Drehverhalten angepasst. Die Drehbefehle durchlaufen dieselbe ROS-2-Verarbeitungskette wie die anderen manuellen Bewegungsbefehle: `manual_control.py` → `/cmd_vel_manual` → `control_mux.py` → `/cmd_vel` → `champ_manual_adapter.py` → `/champ/cmd_vel` → CHAMP.
+
+Bei der Optimierung der Seitwärtsbewegung über **Q/E** wurde die zusätzliche automatische Drehkorrektur deaktiviert (`SIDEWAYS_YAW_MAX = 0.0`). Diese Änderung betrifft die Seitwärtsbewegung; **die gezielte Drehung über A/D bleibt weiterhin möglich**. Dadurch sind seitliche Bewegung und bewusst ausgelöste Drehung in der Steuerung klar voneinander getrennt.
+
+Die Steuerung nutzt die ROS-2-Komponenten `manual_control.py`, `control_mux.py` und `champ_manual_adapter.py`. Ihre Aufgaben und Topics sind im Architekturabschnitt dargestellt.
+
+Wichtige Dateien sind `unitree_teleop/launch/champ.launch.py`, `unitree_teleop/unitree_teleop/champ_manual_adapter.py`, `unitree_teleop/unitree_teleop/control_mux.py`, `unitree_dashboard/ros/manual_control.py` sowie `champ_config/gait.yaml`.
+
+Die verwendeten Gangparameter und Geschwindigkeitsgrenzen sind in den Konfigurations- und Steuerungsdateien hinterlegt.
+
+Die historische Zusatzanleitung [`unitree_teleop/README_CHAMP.md`](unitree_teleop/README_CHAMP.md) beschreibt einen früheren Aufbau und kann von den aktuellen Workspace-Pfaden abweichen.
 
 ## Navigation und Karten
 
-Das Repository enthält Nav2-/SLAM-Konfigurationen sowie gespeicherte Karten:
+Das Projekt enthält Nav2-Konfigurationen, SLAM-bezogene Komponenten und gespeicherte Karten. Nav2 unterstützt die Navigation auf einer vorhandenen Karte; RViz2 visualisiert unter anderem Robotermodell, Karten- und Navigationsdaten.
 
-- `unitree_teleop/config/nav2_params.yaml`
-- `unitree_teleop/config/slam_params.yaml`
-- `unitree_teleop/maps/go2_map.yaml`
-- `unitree_teleop/maps/go2_map_complete.yaml`
-- `unitree_description/rviz/go2_navigation.rviz`
+Wichtige Dateien sind:
 
-Zusätzlich sind Komponenten für Odometrie, TF, SLAM-Pose-Bridging und Footprint-Visualisierung vorhanden. Die konkrete Navigationskonfiguration wird über die Launchdateien festgelegt.
+- `unitree_teleop/config/nav2_params.yaml` – Parameter der Navigationskomponenten.
+- `unitree_teleop/config/slam_params.yaml` – Konfiguration für SLAM-bezogene Funktionen.
+- `unitree_teleop/maps/go2_map.yaml` und `go2_map_complete.yaml` – Metadaten gespeicherter Karten (mit zugehörigen Bilddateien).
+- `unitree_description/rviz/go2_navigation.rviz` – RViz2-Konfiguration.
+
+Im untersuchten `go2_full.launch.py` wird `go2_bringup.launch.py` mit `slam=False` und der Karte `go2_map_complete.yaml` eingebunden. Die Navigation sowie RViz2 und die Footprint-Visualisierung werden zeitverzögert gestartet. Ein Kamera-Bridge-Prozess wird separat eingebunden.
+
+Beim regulären Gesamtstart wird eine vorhandene Karte geladen; die SLAM-Konfiguration ist separat im Repository enthalten.
 
 ## Entwicklungsverlauf
 
@@ -291,33 +324,38 @@ Die folgenden Phasen sind aus dem verfügbaren Projektverlauf und der aktuellen 
 | 8 | Einbindung der Gazebo-Kamera als MJPEG-Livebild. |
 | 9 | Automatisches Starten/Stoppen des Livebilds anhand des Simulationsstatus. |
 | 10 | Integration der Gazebo-Hindernissteuerung in das Dashboard mit Platzieren, Entfernen und Statusanzeige. |
+| 11 | Untersuchung und Verbesserung der Seitwärtsbewegung über Q/E einschließlich Bewertung einer zusätzlichen Drehkorrektur. |
 
-## Bekannte Einschränkungen
+## Ergebnisse der Optimierung der Seitwärtsbewegung
 
-- Die Simulationsstatus-Erkennung überwacht den Launchprozess und nicht separat die Gazebo-GUI.
-- Der Kamerastream ist an die Verfügbarkeit von ROS-Kamerabildern gebunden.
-- Das Platzieren und Entfernen von Hindernissen kann einige Sekunden dauern, da dafür separate ROS-2-Prozesse gestartet werden.
-- Die Installationsschritte sind noch nicht vollständig automatisiert oder auf einem frischen System verifiziert.
-- Die ältere CHAMP-Anleitung und die aktuelle Dashboard-Konfiguration verwenden teilweise unterschiedliche Workspace-Pfade.
-- Die Paketmetadaten enthalten noch `TODO`-Angaben, insbesondere bei Lizenz und Beschreibung.
-- Das Dashboard ist aktuell für den lokalen Einsatz konfiguriert; es besitzt keine hier dokumentierte Authentifizierung für eine Netzwerkfreigabe.
+### Ausgangsproblem
+Bei der manuellen Seitwärtsbewegung über Q/E drehte sich der Unitree Go2 zunehmend um seine eigene Achse.
 
-## Weiterentwicklung
+### Fehlersuche
+- Untersuchung der ROS-2-Topics `/cmd_vel`, `/champ/cmd_vel` und `/odom`.
+- Überprüfung möglicher Einflüsse der Navigations- und Sicherheitssteuerung.
+- Analyse der Vorwärtsdrift und unerwünschter Drehbewegungen.
+- Erprobung verschiedener Korrekturansätze, darunter ein winkelbasierter PD-Regler.
 
-Mögliche nächste Schritte:
+### Lösung
+Die zusätzliche automatische Drehkorrektur verschlechterte das Seitwärtsverhalten.
 
-- Direkte Überwachung des Gazebo-Prozesses zusätzlich zum Launchprozess.
-- Reproduzierbare Installationsanleitung mit vollständiger Abhängigkeitsliste.
-- Screenshots des Dashboards und der Gazebo-Simulation.
-- Dokumentation der ROS-Topics, Actions und Betriebsmodi.
-- Automatisierte Tests für Steuerung und Dashboard.
-- Vereinheitlichung der Workspace-Pfade und Aktualisierung der CHAMP-Zusatzdokumentation.
+Deshalb wurde im CHAMP-Adapter folgende Einstellung vorgenommen:
+
+`SIDEWAYS_YAW_MAX = 0.0`
+
+Die gezielte Drehsteuerung über A/D bleibt davon unabhängig aktiv (siehe „Anpassung der Drehbewegung mit A und D“).
+
+### Ergebnis
+- Deutlich geradlinigere Seitwärtsbewegung über Q/E.
+- Wesentlich besser kontrollierbares Bewegungsverhalten.
+- Geringe Restdrehung weiterhin vorhanden.
 
 ## Lizenz und Hinweise
 
-**Lizenzstatus:** In den derzeitigen `package.xml`-Dateien steht noch `TODO: License declaration`. Vor einer Lizenzangabe oder Veröffentlichung als Open-Source-Projekt muss eine passende Lizenz festgelegt und die Nutzung externer Modelle, Meshes und CHAMP-Komponenten geprüft werden.
+**Lizenzhinweis:** In den vorhandenen `package.xml`-Dateien ist keine abschließend festgelegte Projektlizenz dokumentiert. Externe Komponenten unterliegen ihren jeweiligen Lizenzbedingungen.
 
-Dieses Projekt dokumentiert eine **Simulations- und Entwicklungsumgebung**; Aussagen über die Sicherheit oder Einsatzfähigkeit auf realer Hardware sind damit nicht verbunden.
+Die dokumentierten Funktionen beziehen sich auf die Simulationsumgebung und nicht auf einen Einsatz am realen Roboter.
 
 ---
 
